@@ -29,9 +29,14 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
+        // FIX APPLIED HERE: Explicitly set the redirect URL
+        // This ensures the link points to the current domain (localhost or production)
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
 
         if (error) throw error;
