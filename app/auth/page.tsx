@@ -16,6 +16,8 @@ export default function AuthPage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Once the Supabase client processes the link in the background,
+    // the 'user' state will update, and this effect will redirect them.
     if (user && !authLoading) {
       router.push("/");
     }
@@ -29,13 +31,12 @@ export default function AuthPage() {
 
     try {
       if (isSignUp) {
-        // FIX APPLIED HERE: Explicitly set the redirect URL
-        // This ensures the link points to the current domain (localhost or production)
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            // REDIRECT TO HOME INSTEAD OF CALLBACK
+            emailRedirectTo: window.location.origin,
           },
         });
 
