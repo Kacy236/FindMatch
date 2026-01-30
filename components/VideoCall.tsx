@@ -39,19 +39,25 @@ export default function VideoCall({
 
       try {
         setError(null);
-        const { token, userId, userImage, userName } =
+        // CRITICAL FIX: Destructure 'apiKey' from the server action response
+        const { token, userId, userImage, userName, apiKey, success, error: serverError } =
           await getStreamVideoToken();
+
+        if (!success || !userId || !apiKey) {
+          throw new Error(serverError || "Failed to fetch video credentials");
+        }
 
         if (!isMounted) return;
 
+        // USE THE apiKey RETURNED FROM SERVER INSTEAD OF process.env
         const videoClient = new StreamVideoClient({
-          apiKey: process.env.NEXT_PUBLIC_STREAM_API_KEY!,
+          apiKey: apiKey, 
           user: {
-            id: userId!,
-            name: userName,
+            id: userId,
+            name: userName || "User",
             image: userImage,
           },
-          token,
+          token: token!,
         });
 
         if (!isMounted) return;
@@ -69,9 +75,9 @@ export default function VideoCall({
         setClient(videoClient);
         setCall(videoCall);
         setHasJoined(true);
-      } catch (error) {
-        console.error(error);
-        setError("Failed to initiate call");
+      } catch (error: any) {
+        console.error("Video Call Init Error:", error);
+        setError(error.message || "Failed to initiate call");
       } finally {
         setLoading(false);
       }
@@ -81,10 +87,9 @@ export default function VideoCall({
 
     return () => {
       isMounted = false;
-      if (call && hasJoined) {
-        call.leave();
-      }
-
+      // Note: we don't call leave() inside the effect cleanup if 
+      // the component is unmounting to allow state persistence 
+      // if needed, but for a simple modal, it's fine.
       if (client) {
         client.disconnectUser();
       }

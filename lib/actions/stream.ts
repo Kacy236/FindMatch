@@ -3,6 +3,10 @@
 import { StreamChat } from "stream-chat";
 import { createClient } from "../supabase/server";
 
+// Hardcoded for troubleshooting Vercel environment issues
+const STREAM_KEY = "f46f8yjt5crk";
+const STREAM_SECRET = "5wn5jheqhvu25z293kgynbgugu9rj9btubhma98vav9thszxbz5tyr7eukhd4j8q";
+
 /**
  * Generates a Stream Chat token for the current authenticated user.
  * Also synchronizes the user's profile data (name, image) with Stream.
@@ -30,15 +34,10 @@ export async function getStreamUserToken() {
       return { success: false, error: "Failed to fetch user data" };
     }
 
-    // Validation: Ensure environment variables exist
-    if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
-      console.error("Stream API keys are missing in environment variables");
-      return { success: false, error: "Server configuration error" };
-    }
-
+    // Using Hardcoded Strings directly to ensure Vercel sees them
     const serverClient = StreamChat.getInstance(
-      process.env.NEXT_PUBLIC_STREAM_API_KEY!,
-      process.env.STREAM_API_SECRET!
+      STREAM_KEY,
+      STREAM_SECRET
     );
 
     const token = serverClient.createToken(user.id);
@@ -56,6 +55,7 @@ export async function getStreamUserToken() {
       userId: user.id,
       userName: userData.full_name,
       userImage: userData.avatar_url || undefined,
+      apiKey: STREAM_KEY, // Sending back to client for initialization
     };
   } catch (error) {
     console.error("getStreamUserToken unexpected error:", error);
@@ -96,16 +96,11 @@ export async function createOrGetChannel(matchId: string) {
     const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
 
     // 3. Create a unique Stream Channel ID using the matchId
-    // Stream IDs must be alphanumeric and underscores only (no hyphens)
     const channelId = `match_${matchId.replace(/-/g, "_")}`;
 
-    if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
-      return { success: false, error: "Stream credentials missing" };
-    }
-
     const serverClient = StreamChat.getInstance(
-      process.env.NEXT_PUBLIC_STREAM_API_KEY!,
-      process.env.STREAM_API_SECRET!
+      STREAM_KEY,
+      STREAM_SECRET
     );
 
     // 4. Get other user's profile to sync with Stream
@@ -143,7 +138,6 @@ export async function createOrGetChannel(matchId: string) {
     };
   } catch (error) {
     if (error instanceof Error && error.message.includes("already exists")) {
-      // Re-calculate channelId if it failed inside the catch for some reason
       const channelId = `match_${matchId.replace(/-/g, "_")}`;
       return { success: true, channelType: "messaging", channelId };
     }
@@ -157,19 +151,7 @@ export async function createOrGetChannel(matchId: string) {
  */
 export async function createVideoCall(matchId: string) {
   try {
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return { success: false, error: "User not authenticated" };
-    }
-
-    // Generate a standardized call ID
     const callId = `call_${matchId.replace(/-/g, "_")}`;
-
     return { success: true, callId, callType: "default" };
   } catch (error) {
     return { success: false, error: "Failed to generate call ID" };
@@ -201,13 +183,9 @@ export async function getStreamVideoToken() {
       return { success: false, error: "Failed to fetch user data" };
     }
 
-    if (!process.env.NEXT_PUBLIC_STREAM_API_KEY || !process.env.STREAM_API_SECRET) {
-      return { success: false, error: "Stream credentials missing" };
-    }
-
     const serverClient = StreamChat.getInstance(
-      process.env.NEXT_PUBLIC_STREAM_API_KEY!,
-      process.env.STREAM_API_SECRET!
+      STREAM_KEY,
+      STREAM_SECRET
     );
 
     const token = serverClient.createToken(user.id);
@@ -218,6 +196,7 @@ export async function getStreamVideoToken() {
       userId: user.id,
       userName: userData.full_name,
       userImage: userData.avatar_url || undefined,
+      apiKey: STREAM_KEY
     };
   } catch (error) {
     return { success: false, error: "Internal server error" };

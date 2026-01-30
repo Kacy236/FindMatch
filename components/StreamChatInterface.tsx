@@ -102,16 +102,16 @@ export default function StreamChatInterface({
         // CRITICAL FIX: Verify the response and the ID before connecting
         if (!response.success || !response.userId) {
           console.error("Token generation failed:", response.error);
-          setError("Authentication failed. Please try logging in again.");
+          setError(response.error || "Authentication failed. Please try logging in again.");
           return;
         }
 
-        const { token, userId, userName, userImage } = response;
+        // We extract the apiKey sent from the server to bypass process.env issues
+        const { token, userId, userName, userImage, apiKey } = response;
         setCurrentUserId(userId);
 
-        const chatClient = StreamChat.getInstance(
-          process.env.NEXT_PUBLIC_STREAM_API_KEY!
-        );
+        // USE THE API KEY FROM THE SERVER RESPONSE
+        const chatClient = StreamChat.getInstance(apiKey!);
 
         // Ensure we don't call connectUser if it's already connected to this user
         if (chatClient.userID !== userId) {
