@@ -97,27 +97,43 @@ export default function StreamChatInterface({
       try {
         setError(null);
 
-        const { token, userId, userName, userImage } =
-          await getStreamUserToken();
-        setCurrentUserId(userId!);
+        const response = await getStreamUserToken();
+        
+        // CRITICAL FIX: Verify the response and the ID before connecting
+        if (!response.success || !response.userId) {
+          console.error("Token generation failed:", response.error);
+          setError("Authentication failed. Please try logging in again.");
+          return;
+        }
+
+        const { token, userId, userName, userImage } = response;
+        setCurrentUserId(userId);
 
         const chatClient = StreamChat.getInstance(
           process.env.NEXT_PUBLIC_STREAM_API_KEY!
         );
 
-        await chatClient.connectUser(
-          {
-            id: userId!,
-            name: userName,
-            image: userImage,
-          },
-          token
-        );
+        // Ensure we don't call connectUser if it's already connected to this user
+        if (chatClient.userID !== userId) {
+          await chatClient.connectUser(
+            {
+              id: userId,
+              name: userName || "User",
+              image: userImage,
+            },
+            token!
+          );
+        }
 
-        // This uses the Match ID stored in otherUser.id from our previous getUserMatches fix
-        const { channelType, channelId } = await createOrGetChannel(
-          otherUser.id
-        );
+        const channelResponse = await createOrGetChannel(otherUser.id);
+        
+        if (!channelResponse.success || !channelResponse.channelId) {
+          console.error("Channel error:", channelResponse.error);
+          setError("Could not open conversation.");
+          return;
+        }
+
+        const { channelType, channelId } = channelResponse;
 
         // Get the channel
         const chatChannel = chatClient.channel(channelType!, channelId!);
@@ -186,8 +202,8 @@ export default function StreamChatInterface({
         setClient(chatClient);
         setChannel(chatChannel);
       } catch (error) {
-        console.error("Chat Error:", error);
-        router.push("/chat");
+        console.error("Chat initialization catch-all error:", error);
+        setError("An unexpected error occurred.");
       } finally {
         setLoading(false);
       }
@@ -206,7 +222,10 @@ export default function StreamChatInterface({
 
   async function handleVideoCall() {
     try {
-      const { callId } = await createVideoCall(otherUser.id);
+      const response = await createVideoCall(otherUser.id);
+      if (!response.success) throw new Error(response.error as string);
+
+      const { callId } = response;
       setVideoCallId(callId!);
       setShowVideoCall(true);
       setIsCallInitiator(true);
@@ -222,7 +241,7 @@ export default function StreamChatInterface({
         await channel.sendMessage(messageData as any);
       }
     } catch (error) {
-      console.error(error);
+      console.error("Video call initiation error:", error);
     }
   }
 
@@ -291,6 +310,22 @@ export default function StreamChatInterface({
     return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 p-4">
+        <div className="text-center">
+          <p className="text-red-500 font-semibold">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (!client || !channel) {
     return (
       <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-900">
@@ -313,7 +348,7 @@ export default function StreamChatInterface({
       >
         {messages.map((message, key) => (
           <div
-            key={key}
+            key={message.id || key}
             className={`flex ${
               message.sender === "me" ? "justify-end" : "justify-start"
             }`}
