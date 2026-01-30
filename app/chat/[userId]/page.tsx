@@ -14,35 +14,50 @@ export default function ChatConversationPage() {
   const router = useRouter();
   const params = useParams();
   const { user } = useAuth();
-  const userId = params.userId as string;
+  
+  // FIX: In Next.js, if your folder is [id], the param is 'id', not 'userId'
+  // Also ensuring we fall back to userId if that's how your route is actually named
+  const chatId = (params.id || params.userId) as string;
 
   const chatInterfaceRef = useRef<{ handleVideoCall: () => void } | null>(null);
 
   useEffect(() => {
-    async function loadUserData() {
-      try {
-        const userMatches = await getUserMatches();
-        const matchedUser = userMatches.find((match) => match.id === userId);
+    let isMounted = true;
 
-        if (matchedUser) {
-          setOtherUser(matchedUser);
-        } else {
-          router.push("/chat");
+    async function loadUserData() {
+      if (!chatId || !user) return;
+
+      try {
+        setLoading(true);
+        const userMatches = await getUserMatches();
+        
+        // Searching for the match. 
+        // Note: If you use my previous 'getUserMatches' suggestion, 
+        // you'd check 'match.profile.id === chatId' or 'match.matchId === chatId'
+        const matchedUser = userMatches.find((match) => match.id === chatId);
+
+        if (isMounted) {
+          if (matchedUser) {
+            setOtherUser(matchedUser);
+          } else {
+            console.error("No match found for ID:", chatId);
+            router.push("/chat");
+          }
         }
-        console.log(userMatches);
       } catch (error) {
-        console.error(error);
-        router.push("/chat");
+        console.error("Error loading chat user:", error);
+        if (isMounted) router.push("/chat");
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }
 
-    if (user) {
-      loadUserData();
-    }
     loadUserData();
-  }, [userId, router, user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [chatId, router, user]);
 
   if (loading) {
     return (
@@ -50,7 +65,7 @@ export default function ChatConversationPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Loading your matches...
+            Connecting to chat...
           </p>
         </div>
       </div>

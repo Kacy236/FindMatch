@@ -52,21 +52,19 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("failed to fetch potential matches");
   }
 
-  // 4. Filter by Body Type (since complex JSON array matching is easier in JS than simple SQL)
+  // 4. Filter by Body Type
   const filteredMatches = potentialMatches
     .filter((match) => {
-      // If user has no body type preferences, show everyone (within gender)
       if (!bodyTypePrefs || bodyTypePrefs.length === 0) return true;
-      // Otherwise, only show if the match's body type is in the preference list
       return bodyTypePrefs.includes(match.body_type);
     })
     .map((match) => ({
       id: match.id,
       full_name: match.full_name,
       username: match.username,
-      email: "", // Keep email private during discovery
+      email: "", 
       gender: match.gender,
-      body_type: match.body_type, // Added this field
+      body_type: match.body_type,
       birthdate: match.birthdate,
       bio: match.bio,
       avatar_url: match.avatar_url,
@@ -136,7 +134,7 @@ export async function likeUser(toUserId: string) {
   return { success: true, isMatch: false };
 }
 
-export async function getUserMatches() {
+export async function getUserMatches(): Promise<UserProfile[]> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -171,9 +169,13 @@ export async function getUserMatches() {
 
     if (userError) continue;
 
+    // CRITICAL FIX: The ID returned here must be the MATCH ID (from the matches table)
+    // so that the Chat page dynamic route (/chat/[id]) can find the correct conversation.
     matchedUsers.push({
       ...otherUser,
-      email: otherUser.email, // Can show email once matched
+      id: match.id, // Overwriting user UUID with Match UUID
+      email: otherUser.email,
+      created_at: match.created_at, // Use the date the match was created
     });
   }
 

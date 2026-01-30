@@ -3,6 +3,10 @@
 import { StreamChat } from "stream-chat";
 import { createClient } from "../supabase/server";
 
+/**
+ * Generates a Stream Chat token for the current authenticated user.
+ * Also synchronizes the user's profile data (name, image) with Stream.
+ */
 export async function getStreamUserToken() {
   const supabase = await createClient();
 
@@ -32,6 +36,7 @@ export async function getStreamUserToken() {
 
   const token = serverClient.createToken(user.id);
 
+  // Sync user info to Stream
   await serverClient.upsertUser({
     id: user.id,
     name: userData.full_name,
@@ -46,7 +51,11 @@ export async function getStreamUserToken() {
   };
 }
 
-export async function createOrGetChannel(otherUserId: string) {
+/**
+ * Creates or retrieves a messaging channel between two matched users.
+ * Uses the Match ID to verify the relationship and generate a unique channel ID.
+ */
+export async function createOrGetChannel(matchId: string) {
   const supabase = await createClient();
 
   const {
@@ -57,36 +66,32 @@ export async function createOrGetChannel(otherUserId: string) {
     return { success: false, error: "User not authenticated" };
   }
 
-  const { data: matches, error: matchError } = await supabase
+  // 1. Fetch the match directly from Supabase to verify it exists and is active
+  const { data: match, error: matchError } = await supabase
     .from("matches")
     .select("*")
-    .or(
-      `and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`
-    )
+    .eq("id", matchId)
     .eq("is_active", true)
     .single();
 
-  if (matchError || !matches) {
-    throw new Error("Users are not matched. Cannot create chat channel.");
+  if (matchError || !match) {
+    console.error("Match verification failed:", matchError);
+    throw new Error("Match not found or inactive. Access denied.");
   }
 
-  const sortedIds = [user.id, otherUserId].sort();
-  const combinedIds = sortedIds.join("_");
+  // 2. Determine the other participant in the match
+  const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
 
-  let hash = 0;
-  for (let i = 0; i < combinedIds.length; i++) {
-    const char = combinedIds.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  const channelId = `match_${Math.abs(hash).toString(36)}`;
+  // 3. Create a unique Stream Channel ID using the matchId
+  // Stream IDs must be alphanumeric and underscores only (no hyphens)
+  const channelId = `match_${matchId.replace(/-/g, "_")}`;
 
   const serverClient = StreamChat.getInstance(
     process.env.NEXT_PUBLIC_STREAM_API_KEY!,
     process.env.STREAM_API_SECRET!
   );
 
+  // 4. Get other user's profile to sync with Stream
   const { data: otherUserData, error: otherUserError } = await supabase
     .from("users")
     .select("full_name, avatar_url")
@@ -94,28 +99,31 @@ export async function createOrGetChannel(otherUserId: string) {
     .single();
 
   if (otherUserError) {
-    console.error("Error fetching user data:", otherUserError);
-    throw new Error("Failed to fetch user data");
+    throw new Error("Failed to fetch other user data");
   }
 
-  const channel = serverClient.channel("messaging", channelId, {
-    members: [user.id, otherUserId],
-    created_by_id: user.id,
-  });
-
+  // Ensure the other user exists in Stream's database
   await serverClient.upsertUser({
     id: otherUserId,
     name: otherUserData.full_name,
     image: otherUserData.avatar_url || undefined,
   });
 
+  // 5. Initialize the channel
+  // We use 'as any' to allow the custom 'match_id' property in the channel metadata
+  const channel = serverClient.channel("messaging", channelId, {
+    members: [user.id, otherUserId],
+    created_by_id: user.id,
+    match_id: matchId, 
+  } as any);
+
   try {
     await channel.create();
-    console.log("Channel created successfully:", channelId);
+    console.log("Stream Channel initialized:", channelId);
   } catch (error) {
-    console.log("Channel creation error:", error);
-
+    // If the channel already exists, that's fine—just log and move on
     if (error instanceof Error && !error.message.includes("already exists")) {
+      console.error("Stream Channel Creation Error:", error);
       throw error;
     }
   }
@@ -126,7 +134,10 @@ export async function createOrGetChannel(otherUserId: string) {
   };
 }
 
-export async function createVideoCall(otherUserId: string) {
+/**
+ * Generates a unique Call ID for video functionality based on the Match ID.
+ */
+export async function createVideoCall(matchId: string) {
   const supabase = await createClient();
 
   const {
@@ -137,34 +148,15 @@ export async function createVideoCall(otherUserId: string) {
     return { success: false, error: "User not authenticated" };
   }
 
-  const { data: matches, error: matchError } = await supabase
-    .from("matches")
-    .select("*")
-    .or(
-      `and(user1_id.eq.${user.id},user2_id.eq.${otherUserId}),and(user1_id.eq.${otherUserId},user2_id.eq.${user.id})`
-    )
-    .eq("is_active", true)
-    .single();
-
-  if (matchError || !matches) {
-    throw new Error("Users are not matched. Cannot create chat channel.");
-  }
-
-  const sortedIds = [user.id, otherUserId].sort();
-  const combinedIds = sortedIds.join("_");
-
-  let hash = 0;
-  for (let i = 0; i < combinedIds.length; i++) {
-    const char = combinedIds.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  const callId = `call_${Math.abs(hash).toString(36)}`;
+  // Generate a standardized call ID
+  const callId = `call_${matchId.replace(/-/g, "_")}`;
 
   return { callId, callType: "default" };
 }
 
+/**
+ * Generates a Stream Video token for the current user.
+ */
 export async function getStreamVideoToken() {
   const supabase = await createClient();
 
@@ -183,8 +175,7 @@ export async function getStreamVideoToken() {
     .single();
 
   if (userError) {
-    console.error("Error fetching user data:", userError);
-    throw new Error("Failed to fetch user data");
+    throw new Error("Failed to fetch user data for video token");
   }
 
   const serverClient = StreamChat.getInstance(
@@ -192,6 +183,7 @@ export async function getStreamVideoToken() {
     process.env.STREAM_API_SECRET!
   );
 
+  // Tokens for Stream Video and Chat use the same secret and user ID
   const token = serverClient.createToken(user.id);
 
   return {

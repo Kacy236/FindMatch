@@ -1,3 +1,5 @@
+"use client";
+
 import { UserProfile } from "@/app/profile/page";
 import {
   createOrGetChannel,
@@ -112,12 +114,13 @@ export default function StreamChatInterface({
           token
         );
 
+        // This uses the Match ID stored in otherUser.id from our previous getUserMatches fix
         const { channelType, channelId } = await createOrGetChannel(
           otherUser.id
         );
 
         // Get the channel
-        const chatChannel = chatClient.channel(channelType!, channelId);
+        const chatChannel = chatClient.channel(channelType!, channelId!);
         await chatChannel.watch();
 
         // Load existing messages
@@ -183,6 +186,7 @@ export default function StreamChatInterface({
         setClient(chatClient);
         setChannel(chatChannel);
       } catch (error) {
+        console.error("Chat Error:", error);
         router.push("/chat");
       } finally {
         setLoading(false);
@@ -215,7 +219,7 @@ export default function StreamChatInterface({
           caller_name: otherUser.full_name || "Someone",
         };
 
-        await channel.sendMessage(messageData);
+        await channel.sendMessage(messageData as any);
       }
     } catch (error) {
       console.error(error);
@@ -284,7 +288,7 @@ export default function StreamChatInterface({
   }
 
   function formatTime(date: Date) {
-    return date.toLocaleDateString([], { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   }
 
   if (!client || !channel) {
