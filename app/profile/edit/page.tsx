@@ -8,6 +8,9 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+// Standard options for body types
+const BODY_TYPE_OPTIONS = ["Slim", "Athletic", "Average", "Curvy", "Plus Size"];
+
 export default function EditProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -21,11 +24,11 @@ export default function EditProfilePage() {
     gender: "male" as "male" | "female" | "other",
     birthdate: "",
     avatar_url: "",
-    // Added preferences to state
     preferences: {
       age_range: { min: 18, max: 100 },
       distance: 50,
       gender_preference: [] as ("male" | "female" | "other")[],
+      body_types: [] as string[],
     }
   });
 
@@ -38,14 +41,14 @@ export default function EditProfilePage() {
             full_name: profileData.full_name || "",
             username: profileData.username || "",
             bio: profileData.bio || "",
-            gender: profileData.gender || "male",
+            gender: (profileData.gender as "male" | "female" | "other") || "male",
             birthdate: profileData.birthdate || "",
             avatar_url: profileData.avatar_url || "",
-            // Populate preferences from DB or keep defaults
-            preferences: profileData.preferences || {
-              age_range: { min: 18, max: 100 },
-              distance: 50,
-              gender_preference: [],
+            preferences: {
+              age_range: profileData.preferences?.age_range || { min: 18, max: 100 },
+              distance: profileData.preferences?.distance || 50,
+              gender_preference: (profileData.preferences?.gender_preference as ("male" | "female" | "other")[]) || [],
+              body_types: profileData.preferences?.body_types || [],
             },
           });
         }
@@ -65,7 +68,9 @@ export default function EditProfilePage() {
     setError(null);
 
     try {
-      const result = await updateUserProfile(formData);
+      // TypeScript fix: We cast to 'any' here if your UserProfile type is still strict, 
+      // ensuring the preference object matches your database structure.
+      const result = await updateUserProfile(formData as any);
       if (result.success) {
         router.push("/profile");
       } else {
@@ -88,7 +93,6 @@ export default function EditProfilePage() {
     }));
   }
 
-  // Specific handler for nested preference changes
   const toggleGenderPreference = (gender: "male" | "female" | "other") => {
     setFormData(prev => {
       const current = prev.preferences.gender_preference;
@@ -98,6 +102,19 @@ export default function EditProfilePage() {
       return {
         ...prev,
         preferences: { ...prev.preferences, gender_preference: next }
+      };
+    });
+  };
+
+  const toggleBodyPreference = (type: string) => {
+    setFormData(prev => {
+      const current = prev.preferences.body_types;
+      const next = current.includes(type)
+        ? current.filter(t => t !== type)
+        : [...current, type];
+      return {
+        ...prev,
+        preferences: { ...prev.preferences, body_types: next }
       };
     });
   };
@@ -117,16 +134,24 @@ export default function EditProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Edit Profile</h1>
-          <p className="text-gray-600 dark:text-gray-400">Update your profile and dating preferences</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Edit Profile
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Update your profile and dating preferences
+          </p>
         </header>
 
         <div className="max-w-2xl mx-auto">
-          <form className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8" onSubmit={handleFormSubmit}>
-            
+          <form
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8"
+            onSubmit={handleFormSubmit}
+          >
             {/* Profile Picture Section */}
             <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Profile Picture</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
+                Profile Picture
+              </label>
               <div className="flex items-center space-x-6">
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2">
@@ -136,86 +161,121 @@ export default function EditProfilePage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <PhotoUpload onPhotoUploaded={(url) => setFormData(prev => ({ ...prev, avatar_url: url }))} />
+                  <PhotoUpload
+                    onPhotoUploaded={(url) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        avatar_url: url,
+                      }));
+                    }}
+                  />
                 </div>
+
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Update your photo</p>
-                  <p className="text-xs text-gray-500">JPG, PNG or GIF. Max 5MB.</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    Upload a new profile picture
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-500">
+                    JPG, PNG or GIF. Max 5MB.
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Basic Info Fields */}
+            {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium mb-2">Full Name *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Full Name *
+                </label>
                 <input
                   type="text"
                   name="full_name"
                   value={formData.full_name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-2">Username *</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Username *
+                </label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div>
-                <label className="block text-sm font-medium mb-2">My Gender</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  My Gender *
+                </label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
                   <option value="other">Other</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-sm font-medium mb-2">Birthday</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Birthday *
+                </label>
                 <input
                   type="date"
                   name="birthdate"
                   value={formData.birthdate}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
             </div>
 
             <div className="mb-8">
-              <label className="block text-sm font-medium mb-2">Bio</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                About Me *
+              </label>
               <textarea
                 name="bio"
                 value={formData.bio}
                 onChange={handleInputChange}
-                rows={3}
-                className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700 resize-none"
+                required
+                rows={4}
+                maxLength={500}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white resize-none"
+                placeholder="Tell others about yourself..."
               />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {formData.bio.length}/500 characters
+              </p>
             </div>
 
             {/* --- PREFERENCES SECTION --- */}
-            <div className="pt-6 border-t border-gray-100 dark:border-gray-700 mt-8">
-              <h3 className="text-xl font-bold text-pink-600 mb-6">Dating Preferences</h3>
+            <div className="pt-8 border-t border-gray-200 dark:border-gray-700 mt-8">
+              <h3 className="text-xl font-bold text-pink-600 dark:text-pink-400 mb-6">
+                Dating Preferences
+              </h3>
 
-              {/* Age Range Inputs */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Min Age</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Min Age Preference
+                  </label>
                   <input
                     type="number"
                     min="18"
@@ -225,14 +285,16 @@ export default function EditProfilePage() {
                       ...prev,
                       preferences: { 
                         ...prev.preferences, 
-                        age_range: { ...prev.preferences.age_range, min: parseInt(e.target.value) } 
+                        age_range: { ...prev.preferences.age_range, min: parseInt(e.target.value) || 18 } 
                       }
                     }))}
-                    className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Max Age</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Max Age Preference
+                  </label>
                   <input
                     type="number"
                     min="18"
@@ -242,17 +304,18 @@ export default function EditProfilePage() {
                       ...prev,
                       preferences: { 
                         ...prev.preferences, 
-                        age_range: { ...prev.preferences.age_range, max: parseInt(e.target.value) } 
+                        age_range: { ...prev.preferences.age_range, max: parseInt(e.target.value) || 100 } 
                       }
                     }))}
-                    className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
               </div>
 
-              {/* Distance Input */}
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">Max Distance (km)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Max Distance (km)
+                </label>
                 <input
                   type="number"
                   min="1"
@@ -260,22 +323,23 @@ export default function EditProfilePage() {
                   value={formData.preferences.distance}
                   onChange={(e) => setFormData(prev => ({
                     ...prev,
-                    preferences: { ...prev.preferences, distance: parseInt(e.target.value) }
+                    preferences: { ...prev.preferences, distance: parseInt(e.target.value) || 1 }
                   }))}
-                  className="w-full px-4 py-2 border dark:border-gray-600 rounded-lg dark:bg-gray-700"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                 />
               </div>
 
-              {/* Gender Preference Multi-select */}
-              <div className="mb-8">
-                <label className="block text-sm font-medium mb-3">Interested in (Show me)</label>
-                <div className="flex gap-3">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Interested in
+                </label>
+                <div className="flex flex-wrap gap-2">
                   {(["male", "female", "other"] as const).map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => toggleGenderPreference(g)}
-                      className={`px-4 py-2 rounded-full border transition-all ${
+                      className={`px-4 py-2 rounded-full border text-sm transition-all ${
                         formData.preferences.gender_preference.includes(g)
                           ? "bg-pink-500 border-pink-500 text-white shadow-md"
                           : "bg-transparent border-gray-300 dark:border-gray-600 text-gray-500"
@@ -286,10 +350,33 @@ export default function EditProfilePage() {
                   ))}
                 </div>
               </div>
+
+              <div className="mb-8">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Preferred Body Types
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {BODY_TYPE_OPTIONS.map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleBodyPreference(type)}
+                      className={`px-4 py-2 rounded-full border text-sm transition-all ${
+                        formData.preferences.body_types.includes(type)
+                          ? "bg-red-500 border-red-500 text-white shadow-md"
+                          : "bg-transparent border-gray-300 dark:border-gray-600 text-gray-500"
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Multiple selections allowed</p>
+              </div>
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100">
+              <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
                 {error}
               </div>
             )}
@@ -298,14 +385,14 @@ export default function EditProfilePage() {
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-6 py-2 text-gray-500 hover:text-gray-800 transition-colors"
+                className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={saving}
-                className="px-8 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white font-bold rounded-lg shadow-lg hover:opacity-90 disabled:opacity-50 transition-all"
+                className="px-8 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white font-bold rounded-lg hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
               >
                 {saving ? "Saving..." : "Save Changes"}
               </button>
