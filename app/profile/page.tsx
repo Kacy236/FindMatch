@@ -11,9 +11,8 @@ export interface UserPreferences {
     min: number;
     max: number;
   };
-  distance: number;
   gender_preference: ("male" | "female" | "other")[];
-  body_types?: string[]; // Added this to match the edit page
+  body_types?: string[]; // The types of bodies this user is looking for
 }
 
 export interface UserProfile {
@@ -22,6 +21,7 @@ export interface UserProfile {
   username: string;
   email: string;
   gender: "male" | "female" | "other";
+  body_type: string; // The user's own body type
   birthdate: string;
   bio: string;
   avatar_url: string;
@@ -154,13 +154,21 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Basic Info */}
-                  <div className="grid grid-cols-2 gap-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
                     <div>
                       <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
                         Gender
                       </label>
                       <p className="text-gray-900 dark:text-white capitalize font-medium">
                         {profile.gender}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-400 uppercase mb-1">
+                        Body Type
+                      </label>
+                      <p className="text-gray-900 dark:text-white font-medium">
+                        {profile.body_type || "Not specified"}
                       </p>
                     </div>
                     <div>
@@ -191,26 +199,16 @@ export default function ProfilePage() {
                           </p>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-500 mb-1">
-                            Max Distance
+                          <label className="block text-sm font-medium text-gray-500 mb-2">
+                            Interested In
                           </label>
-                          <p className="text-gray-900 dark:text-white">
-                            Within {profile.preferences.distance} km
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Gender Preferences Tags */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-500 mb-2">
-                          Interested In
-                        </label>
-                        <div className="flex flex-wrap gap-2">
-                          {profile.preferences.gender_preference.map((g) => (
-                            <span key={g} className="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm rounded-full border border-pink-200 dark:border-pink-800 capitalize">
-                              {g}
-                            </span>
-                          ))}
+                          <div className="flex flex-wrap gap-2">
+                            {profile.preferences.gender_preference.map((g) => (
+                              <span key={g} className="px-3 py-1 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-sm rounded-full border border-pink-200 dark:border-pink-800 capitalize">
+                                {g}
+                              </span>
+                            ))}
+                          </div>
                         </div>
                       </div>
 

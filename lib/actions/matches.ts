@@ -13,55 +13,73 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("Not authenticated.");
   }
 
-  const { data: potentialMatches, error } = await supabase
-    .from("users")
-    .select("*")
-    .neq("id", user.id)
-    .limit(50);
-
-  if (error) {
-    throw new Error("failed to fetch potential matches");
-  }
-
-  const { data: userPrefs, error: prefsError } = await supabase
+  // 1. Get the current user's preferences (Gender and Body Types)
+  const { data: currentUser, error: userError } = await supabase
     .from("users")
     .select("preferences")
     .eq("id", user.id)
     .single();
 
-  if (prefsError) {
-    throw new Error("Failed to get user preferences");
+  if (userError) throw new Error("Failed to get user preferences");
+
+  const prefs = currentUser.preferences as any;
+  const genderPrefs = prefs?.gender_preference || [];
+  const bodyTypePrefs = prefs?.body_types || [];
+
+  // 2. Get IDs of users we have already liked to exclude them
+  const { data: alreadyLiked } = await supabase
+    .from("likes")
+    .select("to_user_id")
+    .eq("from_user_id", user.id);
+
+  const excludedIds = alreadyLiked?.map((l) => l.to_user_id) || [];
+  excludedIds.push(user.id); // Also exclude ourselves
+
+  // 3. Build the query
+  let query = supabase
+    .from("users")
+    .select("*")
+    .not("id", "in", `(${excludedIds.join(",")})`);
+
+  // Filter by gender if preferences exist
+  if (genderPrefs.length > 0) {
+    query = query.in("gender", genderPrefs);
   }
 
-  const currentUserPrefs = userPrefs.preferences as any;
-  const genderPreference = currentUserPrefs?.gender_preference || [];
-  const filteredMatches =
-    potentialMatches
-      .filter((match) => {
-        if (!genderPreference || genderPreference.length === 0) {
-          return true;
-        }
+  const { data: potentialMatches, error: fetchError } = await query.limit(50);
 
-        return genderPreference.includes(match.gender);
-      })
-      .map((match) => ({
-        id: match.id,
-        full_name: match.full_name,
-        username: match.username,
-        email: "",
-        gender: match.gender,
-        birthdate: match.birthdate,
-        bio: match.bio,
-        avatar_url: match.avatar_url,
-        preferences: match.preferences,
-        location_lat: undefined,
-        location_lng: undefined,
-        last_active: new Date().toISOString(),
-        is_verified: true,
-        is_online: false,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })) || [];
+  if (fetchError) {
+    throw new Error("failed to fetch potential matches");
+  }
+
+  // 4. Filter by Body Type (since complex JSON array matching is easier in JS than simple SQL)
+  const filteredMatches = potentialMatches
+    .filter((match) => {
+      // If user has no body type preferences, show everyone (within gender)
+      if (!bodyTypePrefs || bodyTypePrefs.length === 0) return true;
+      // Otherwise, only show if the match's body type is in the preference list
+      return bodyTypePrefs.includes(match.body_type);
+    })
+    .map((match) => ({
+      id: match.id,
+      full_name: match.full_name,
+      username: match.username,
+      email: "", // Keep email private during discovery
+      gender: match.gender,
+      body_type: match.body_type, // Added this field
+      birthdate: match.birthdate,
+      bio: match.bio,
+      avatar_url: match.avatar_url,
+      preferences: match.preferences,
+      location_lat: undefined,
+      location_lng: undefined,
+      last_active: match.last_active,
+      is_verified: match.is_verified,
+      is_online: match.is_online,
+      created_at: match.created_at,
+      updated_at: match.updated_at,
+    }));
+
   return filteredMatches;
 }
 
@@ -75,6 +93,7 @@ export async function likeUser(toUserId: string) {
     throw new Error("Not authenticated.");
   }
 
+  // Create the like
   const { error: likeError } = await supabase.from("likes").insert({
     from_user_id: user.id,
     to_user_id: toUserId,
@@ -84,6 +103,7 @@ export async function likeUser(toUserId: string) {
     throw new Error("Failed to create like");
   }
 
+  // Check if it's a mutual match
   const { data: existingLike, error: checkError } = await supabase
     .from("likes")
     .select("*")
@@ -126,6 +146,7 @@ export async function getUserMatches() {
     throw new Error("Not authenticated.");
   }
 
+  // Fetch all active matches for the user
   const { data: matches, error } = await supabase
     .from("matches")
     .select("*")
@@ -148,27 +169,11 @@ export async function getUserMatches() {
       .eq("id", otherUserId)
       .single();
 
-    if (userError) {
-      continue;
-    }
+    if (userError) continue;
 
     matchedUsers.push({
-      id: otherUser.id,
-      full_name: otherUser.full_name,
-      username: otherUser.username,
-      email: otherUser.email,
-      gender: otherUser.gender,
-      birthdate: otherUser.birthdate,
-      bio: otherUser.bio,
-      avatar_url: otherUser.avatar_url,
-      preferences: otherUser.preferences,
-      location_lat: undefined,
-      location_lng: undefined,
-      last_active: new Date().toISOString(),
-      is_verified: true,
-      is_online: false,
-      created_at: match.created_at,
-      updated_at: match.created_at,
+      ...otherUser,
+      email: otherUser.email, // Can show email once matched
     });
   }
 

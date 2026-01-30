@@ -32,7 +32,7 @@ export async function getCurrentUserProfile() {
 }
 
 /**
- * Updates the user's profile, including the complex 'preferences' JSON object.
+ * Updates the user's profile, including the new 'body_type' field and preferences.
  */
 export async function updateUserProfile(profileData: Partial<UserProfile>) {
   const supabase = await createClient();
@@ -52,10 +52,10 @@ export async function updateUserProfile(profileData: Partial<UserProfile>) {
       username: profileData.username,
       bio: profileData.bio,
       gender: profileData.gender,
+      body_type: profileData.body_type, // Added to match the new schema
       birthdate: profileData.birthdate,
       avatar_url: profileData.avatar_url,
-      // FIX: Added 'preferences' to the update object so JSON changes persist
-      preferences: profileData.preferences, 
+      preferences: profileData.preferences, // Saves age range and preferred body types
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);

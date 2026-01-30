@@ -22,11 +22,11 @@ export default function EditProfilePage() {
     username: "",
     bio: "",
     gender: "male" as "male" | "female" | "other",
+    body_type: "Average" as string, // User's own body type
     birthdate: "",
     avatar_url: "",
     preferences: {
       age_range: { min: 18, max: 100 },
-      distance: 50,
       gender_preference: [] as ("male" | "female" | "other")[],
       body_types: [] as string[],
     }
@@ -42,11 +42,11 @@ export default function EditProfilePage() {
             username: profileData.username || "",
             bio: profileData.bio || "",
             gender: (profileData.gender as "male" | "female" | "other") || "male",
+            body_type: profileData.body_type || "Average",
             birthdate: profileData.birthdate || "",
             avatar_url: profileData.avatar_url || "",
             preferences: {
               age_range: profileData.preferences?.age_range || { min: 18, max: 100 },
-              distance: profileData.preferences?.distance || 50,
               gender_preference: (profileData.preferences?.gender_preference as ("male" | "female" | "other")[]) || [],
               body_types: profileData.preferences?.body_types || [],
             },
@@ -213,7 +213,7 @@ export default function EditProfilePage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   My Gender *
@@ -244,6 +244,25 @@ export default function EditProfilePage() {
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
                 />
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  My Body Type *
+                </label>
+                <select
+                  name="body_type"
+                  value={formData.body_type}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                >
+                  {BODY_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="mb-8">
@@ -268,7 +287,7 @@ export default function EditProfilePage() {
             {/* --- PREFERENCES SECTION --- */}
             <div className="pt-8 border-t border-gray-200 dark:border-gray-700 mt-8">
               <h3 className="text-xl font-bold text-pink-600 dark:text-pink-400 mb-6">
-                Dating Preferences
+                Discovery Preferences
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -310,23 +329,6 @@ export default function EditProfilePage() {
                     className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
                   />
                 </div>
-              </div>
-
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Max Distance (km)
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="500"
-                  value={formData.preferences.distance}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    preferences: { ...prev.preferences, distance: parseInt(e.target.value) || 1 }
-                  }))}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                />
               </div>
 
               <div className="mb-6">

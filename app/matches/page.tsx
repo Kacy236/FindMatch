@@ -52,14 +52,21 @@ export default function MatchesPage() {
   }
 
   function handlePass() {
-    if (currentIndex < potentialMatches.length - 1) {
+    if (currentIndex < potentialMatches.length) {
       setCurrentIndex((prev) => prev + 1);
     }
   }
 
-  function handleCloseMatchNotification() {}
+  function handleCloseMatchNotification() {
+    setShowMatchNotification(false);
+    setMatchedUser(null);
+  }
 
-  function handleStartChat() {}
+  function handleStartChat() {
+    if (matchedUser) {
+      router.push(`/messages/${matchedUser.id}`);
+    }
+  }
 
   if (loading) {
     return (
@@ -88,7 +95,11 @@ export default function MatchesPage() {
             Check back later for new matches, or try adjusting your preferences!
           </p>
           <button
-            onClick={() => setCurrentIndex(0)}
+            onClick={() => {
+              setLoading(true);
+              setCurrentIndex(0);
+              router.refresh(); // Refresh to fetch new data based on updated preferences
+            }}
             className="bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
           >
             Refresh
