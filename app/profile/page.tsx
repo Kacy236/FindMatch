@@ -126,7 +126,7 @@ export default function ProfilePage() {
 
                   <div className="flex-1">
                     <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
-                      {profile.full_name}, {calculateAge(profile.birthdate)}
+                      {profile.full_name} - {calculateAge(profile.birthdate)}
                     </h2>
                     <p className="text-gray-600 dark:text-gray-400 mb-2">
                       @{profile.username}
