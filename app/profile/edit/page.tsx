@@ -154,15 +154,21 @@ export default function EditProfilePage() {
               </label>
               <div className="flex items-center space-x-6">
                 <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2">
+                  <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2 bg-gray-100 dark:bg-gray-800">
                     <img
+                      key={formData.avatar_url} // Force refresh when URL changes
                       src={formData.avatar_url || "/default-avatar.png"}
                       alt="Profile"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/default-avatar.png";
+                      }}
                     />
                   </div>
                   <PhotoUpload
                     onPhotoUploaded={(url) => {
+                      console.log("Image Uploaded Successfully. URL:", url);
                       setFormData((prev) => ({
                         ...prev,
                         avatar_url: url,
