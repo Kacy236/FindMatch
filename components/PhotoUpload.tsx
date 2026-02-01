@@ -1,7 +1,7 @@
 "use client";
 
 import { uploadProfilePhoto } from "@/lib/actions/profile";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 
 export default function PhotoUpload({
   onPhotoUploaded,
@@ -12,17 +12,28 @@ export default function PhotoUpload({
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Automatically clear error after 3 seconds so it doesn't hang around
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   async function handleFileSelect(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validation
     if (!file.type.startsWith("image/")) {
       setError("Please select an image file");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
       setError("File size must be less than 5MB");
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
@@ -38,9 +49,12 @@ export default function PhotoUpload({
         setError(result.error ?? "Failed to upload photo.");
       }
     } catch (err) {
+      console.error("Upload error:", err);
       setError("Failed to change photo");
     } finally {
       setUploading(false);
+      // Clear the input value so the same file can be re-selected if needed
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   }
 
@@ -57,18 +71,27 @@ export default function PhotoUpload({
         className="hidden"
         onChange={handleFileSelect}
       />
+      
+      {/* Error Tooltip */}
+      {error && (
+        <div className="absolute bottom-12 right-0 w-48 bg-red-600 text-white text-xs p-2 rounded-lg shadow-xl animate-bounce">
+          {error}
+          <div className="absolute -bottom-1 right-4 w-2 h-2 bg-red-600 rotate-45"></div>
+        </div>
+      )}
+
       <button
         type="button"
         onClick={handleClick}
         disabled={uploading}
-        className="absolute bottom-0 right-0 bg-pink-500 text-white p-2 rounded-full hover:bg-pink-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="relative bg-pink-500 text-white p-2.5 rounded-full hover:bg-pink-600 transition-all duration-200 shadow-lg hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed group"
         title="Change photo"
       >
         {uploading ? (
-          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         ) : (
           <svg
-            className="w-4 h-4"
+            className="w-5 h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

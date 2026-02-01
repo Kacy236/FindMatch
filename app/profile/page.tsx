@@ -12,7 +12,7 @@ export interface UserPreferences {
     max: number;
   };
   gender_preference: ("male" | "female" | "other")[];
-  body_types?: string[]; // The types of bodies this user is looking for
+  body_types?: string[]; 
 }
 
 export interface UserProfile {
@@ -21,7 +21,7 @@ export interface UserProfile {
   username: string;
   email: string;
   gender: "male" | "female" | "other";
-  body_type: string; // The user's own body type
+  body_type: string; 
   birthdate: string;
   bio: string;
   avatar_url: string;
@@ -117,9 +117,14 @@ export default function ProfilePage() {
                   <div className="relative">
                     <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2">
                       <img
+                        // Using the key trick here as well for consistency
+                        key={profile.avatar_url}
                         src={profile.avatar_url || "/default-avatar.png"}
                         alt={profile.full_name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/default-avatar.png";
+                        }}
                       />
                     </div>
                   </div>
@@ -212,7 +217,6 @@ export default function ProfilePage() {
                         </div>
                       </div>
 
-                      {/* Body Types Tags */}
                       {profile.preferences.body_types && profile.preferences.body_types.length > 0 && (
                         <div>
                           <label className="block text-sm font-medium text-gray-500 mb-2">
