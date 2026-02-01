@@ -15,6 +15,7 @@ import MatchNotification from "@/components/MatchNotification";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
+// Defined ViewMode type
 type ViewMode = "discover" | "whoLikedMe" | "iLiked";
 
 export default function MatchesPage() {
@@ -162,8 +163,6 @@ export default function MatchesPage() {
               key={currentMatch.id} 
               user={currentMatch} 
               onSwipe={handleSwipe}
-              // We pass the function, but MatchCard's internal 'handleDragEnd' 
-              // and 'onTap' will now decide if it was a real click or a swipe.
               onClick={() => handleProfileClick(currentMatch.id)} 
             />
           </AnimatePresence>
@@ -178,8 +177,9 @@ export default function MatchesPage() {
   const renderSecondaryList = () => {
     if (secondaryProfiles.length === 0) {
       return (
-        <div className="flex-1 flex items-center justify-center text-gray-400 font-medium italic">
-          Nothing to see here yet...
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 space-y-4">
+          <div className="text-5xl opacity-20">📭</div>
+          <p className="font-medium italic">Nothing to see here yet...</p>
         </div>
       );
     }
@@ -216,12 +216,12 @@ export default function MatchesPage() {
                       e.stopPropagation();
                       handleLikeBack(profile.id);
                     }}
-                    className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold"
+                    className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold hover:bg-pink-600 transition-colors"
                   >
                     Like Back
                   </button>
                 ) : (
-                  <div className="flex items-center justify-center py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                  <div className="flex items-center justify-center py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-gray-900/50 rounded-xl">
                     Pending
                   </div>
                 )}
@@ -237,45 +237,65 @@ export default function MatchesPage() {
     <div className="fixed inset-0 h-screen w-screen bg-[#FDFCFD] dark:bg-gray-950 flex flex-col overflow-hidden">
       <div className="flex-1 flex flex-col container mx-auto max-w-5xl overflow-hidden">
         
-        <header className="px-4 pt-4 pb-2 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
-            <button onClick={() => router.back()} className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
-              <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <header className="px-4 pt-6 pb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => router.back()} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-95 transition-transform">
+              <svg className="w-5 h-5 text-gray-700 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-xl font-black tracking-tighter text-gray-900 dark:text-white">
-              {viewMode === "discover" ? "Discover" : viewMode === "whoLikedMe" ? "Interested" : "Sent"}
+            <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
+              {viewMode === "discover" ? "Discover" : viewMode === "whoLikedMe" ? "Likes You" : "Matches"}
             </h1>
-            <div className="w-10" />
+            <div className="w-11" />
           </div>
 
-          <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-[1.25rem] max-w-sm mx-auto shadow-inner">
+          {/* UPGRADED NAVIGATION TABS */}
+          <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-[1.5rem] max-w-md mx-auto shadow-inner border border-gray-200/50 dark:border-gray-800">
             {[
-              { id: "discover", label: "Discover" },
-              { id: "whoLikedMe", label: "Likes You" },
-              { id: "iLiked", label: "Sent" }
-            ].map((tab) => (
-              <button 
-                key={tab.id}
-                onClick={() => setViewMode(tab.id as ViewMode)}
-                className={`flex-1 py-2 text-[10px] font-bold rounded-2xl transition-all duration-300 ${
-                  viewMode === tab.id 
-                    ? "bg-white dark:bg-gray-800 shadow-sm text-pink-600 dark:text-pink-400" 
-                    : "text-gray-400"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+              { id: "discover", label: "Discover", icon: "🔥" },
+              { id: "whoLikedMe", label: "Likes You", icon: "💖" },
+              { id: "iLiked", label: "Sent", icon: "✉️" }
+            ].map((tab) => {
+              const isActive = viewMode === tab.id;
+              return (
+                <button 
+                  key={tab.id}
+                  onClick={() => setViewMode(tab.id as ViewMode)}
+                  className={`relative flex-1 flex items-center justify-center gap-2 py-3 rounded-[1.2rem] transition-all duration-500 ${
+                    isActive 
+                      ? "bg-white dark:bg-gray-800 shadow-md scale-[1.02]" 
+                      : "hover:bg-gray-200/50 dark:hover:bg-gray-800/50"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeTab"
+                      className="absolute inset-0 bg-white dark:bg-gray-800 rounded-[1.2rem] z-0"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
+                  <span className={`relative z-10 text-[13px] font-black tracking-tight ${
+                    isActive ? "text-pink-600 dark:text-pink-400" : "text-gray-400 dark:text-gray-500"
+                  }`}>
+                    <span className="mr-1.5 opacity-80">{tab.icon}</span>
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </header>
 
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden pt-2">
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="h-10 w-10 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
-              <p className="mt-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
+              <motion.div 
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                className="h-12 w-12 rounded-full border-4 border-pink-500 border-t-transparent"
+              />
+              <p className="mt-4 text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Finding Matches</p>
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
