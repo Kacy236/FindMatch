@@ -5,7 +5,6 @@ import { getUserMatches } from "@/lib/actions/matches";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { calculateAge } from "@/lib/helpers/calculate-age";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
@@ -54,7 +53,7 @@ export default function MatchesListPage() {
               {matches.length} Mutual Match{matches.length !== 1 ? "es" : ""}
             </p>
           </div>
-          <div className="h-10 w-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+          <div className="h-10 w-10 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
             <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -84,64 +83,63 @@ export default function MatchesListPage() {
             </Link>
           </motion.div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1">
             {matches.map((match, index) => (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05 }}
                 key={match.id}
               >
                 <div 
+                  className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group"
                   onClick={() => router.push(`/chat/${match.id}`)}
-                  className="flex items-center gap-4 p-4 rounded-[2.5rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900 transition-all cursor-pointer group"
                 >
                   {/* Avatar Container - Click goes to PROFILE */}
                   <div 
-                    className="relative flex-shrink-0 z-10"
+                    className="relative flex-shrink-0 z-20"
                     onClick={(e) => {
-                      e.stopPropagation(); // Prevents navigation to chat
+                      e.stopPropagation(); // Prevents the parent onClick (chat) from firing
                       router.push(`/profile/${match.id}`);
                     }}
                   >
-                    <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-transparent group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
                       <Image
                         src={match.avatar_url || "/default-avatar.png"}
                         alt={match.full_name}
-                        width={64}
-                        height={64}
+                        width={56}
+                        height={56}
                         className="w-full h-full object-cover"
                       />
                     </div>
                     {/* Online Status Indicator */}
-                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full"></div>
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
                   </div>
 
-                  {/* Content Info - Click goes to CHAT */}
+                  {/* Name Info - Click goes to CHAT */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline justify-between mb-0.5">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-white truncate">
-                        {match.full_name}, {calculateAge(match.birthdate)}
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
+                        {match.full_name}
                       </h3>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                        Just Now
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                        Match
                       </span>
                     </div>
-                    
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate pr-4">
-                      {match.bio || `Say hello to ${match.full_name}!`}
+                    <p className="text-sm text-pink-500 font-medium">
+                      Tap to message
                     </p>
                   </div>
 
-                  {/* Action Icon */}
-                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <svg className="w-5 h-5 text-pink-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Chevron Icon */}
+                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 transition-all">
+                    <svg className="w-5 h-5 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
                     </svg>
                   </div>
                 </div>
-                {/* Thin Divider */}
-                <div className="h-[1px] bg-gray-50 dark:bg-gray-900 mx-20" />
+                {/* Thin subtle divider */}
+                <div className="h-[1px] bg-gray-50 dark:bg-gray-900/50 mx-16" />
               </motion.div>
             ))}
           </div>
