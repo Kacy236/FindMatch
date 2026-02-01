@@ -9,11 +9,12 @@ import { useState } from "react";
 interface MatchCardProps {
   user: UserProfile;
   onSwipe: (direction: "left" | "right") => void;
-  onClick?: () => void; // Added onClick prop
+  onClick?: () => void;
 }
 
 export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
   const [exitX, setExitX] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState(false);
   
   // Motion values for tracking drag position
   const x = useMotionValue(0);
@@ -22,68 +23,71 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
   const rotate = useTransform(x, [-200, 200], [-25, 25]);
   const opacity = useTransform(x, [-200, -150, 0, 150, 200], [0, 1, 1, 1, 0]);
   
-  // Map drag to colors for visual feedback (Red for left, Green for right)
+  // Map drag to colors for visual feedback
   const overlayColor = useTransform(
     x,
     [-100, 0, 100],
     ["rgba(239, 68, 68, 0.5)", "rgba(0, 0, 0, 0)", "rgba(34, 197, 94, 0.5)"]
   );
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
-    const threshold = 120; // Distance required to trigger a swipe
-    
-    // Logic to distinguish between a tap and a drag
-    // If the movement is very small, we consider it a click
-    if (Math.abs(info.offset.x) < 5 && Math.abs(info.offset.y) < 5) {
-      onClick?.();
-      return;
-    }
+  const handleDragStart = () => {
+    setIsDragging(true);
+  };
 
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    const threshold = 120;
+    
+    // If the movement was significant, it was a swipe
     if (info.offset.x > threshold) {
-      setExitX(500);
+      setExitX(600);
       onSwipe("right");
     } else if (info.offset.x < -threshold) {
-      setExitX(-500);
+      setExitX(-600);
       onSwipe("left");
     }
+
+    // Reset dragging state after a tiny delay to prevent ghost clicks
+    setTimeout(() => setIsDragging(false), 100);
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto h-full max-h-[55vh] sm:max-h-[65vh] perspective-1000 touch-pan-y">
+    <div className="relative w-full max-w-md mx-auto h-full max-h-[50vh] sm:max-h-[60vh] perspective-1000 touch-none">
       <motion.div
         style={{ x, rotate, opacity }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
+        onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         animate={{ x: exitX }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className="relative w-full h-full cursor-grab active:cursor-grabbing"
-        // Secondary safety: Framer Motion's onTap specifically handles clicks vs drags
+        // This is the key fix: onTap will only fire if a drag didn't occur
         onTap={() => {
-          // Only trigger if we aren't currently exiting
-          if (exitX === 0) onClick?.();
+          if (!isDragging && exitX === 0) {
+            onClick?.();
+          }
         }}
       >
         {/* Main Card Container */}
-        <div className="relative w-full h-full overflow-hidden rounded-[2.5rem] shadow-2xl bg-gray-900 border border-white/10">
+        <div className="relative w-full h-full overflow-hidden rounded-[2.5rem] shadow-2xl bg-gray-900 border border-white/10 select-none">
           
           {/* Profile Image */}
           <Image
             src={user.avatar_url || "/default-avatar.png"}
             alt={user.full_name}
             fill
-            className="object-cover pointer-events-none"
+            className="object-cover pointer-events-none select-none"
             priority
           />
 
-          {/* Dynamic Color Overlay (Feedback for dragging) */}
+          {/* Dynamic Color Overlay */}
           <motion.div 
             style={{ backgroundColor: overlayColor }}
             className="absolute inset-0 z-10 pointer-events-none transition-colors duration-200" 
           />
 
-          {/* Status Badges & Tap Info */}
-          <div className="absolute top-5 left-5 right-5 z-20 flex justify-between items-center">
+          {/* Status Badges */}
+          <div className="absolute top-5 left-5 right-5 z-20 flex justify-between items-center pointer-events-none">
             {user.is_online ? (
               <span className="flex items-center gap-1.5 bg-black/40 backdrop-blur-xl text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full border border-white/20">
                 <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -91,7 +95,6 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
               </span>
             ) : <div />}
 
-            {/* Info Icon to hint at clickability */}
             <div className="p-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -100,10 +103,10 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
           </div>
 
           {/* Bottom Info Gradient */}
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/40 to-transparent z-20" />
+          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/40 to-transparent z-20 pointer-events-none" />
 
           {/* Content Area */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 z-30">
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-30 pointer-events-none">
             <div className="space-y-2">
               <div className="flex items-baseline gap-2">
                 <h2 className="text-2xl font-black text-white tracking-tight">
@@ -130,11 +133,6 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
               <p className="text-sm text-gray-200 line-clamp-2 font-medium opacity-90 leading-tight">
                 {user.bio || "Looking for someone special..."}
               </p>
-              
-              {/* Click Visual Hint */}
-              <div className="pt-1 text-[9px] text-pink-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-                Tap to see full profile
-              </div>
             </div>
           </div>
         </div>

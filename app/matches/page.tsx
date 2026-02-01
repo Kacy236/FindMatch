@@ -156,18 +156,18 @@ export default function MatchesPage() {
     const currentMatch = potentialMatches[currentIndex];
     return (
       <div className="flex-1 flex flex-col justify-center overflow-hidden">
-        {/* Strictly controlled card height */}
         <div className="relative w-full max-w-md mx-auto px-4 h-[50vh] sm:h-[60vh]">
           <AnimatePresence mode="popLayout">
             <MatchCard 
               key={currentMatch.id} 
               user={currentMatch} 
               onSwipe={handleSwipe}
+              // We pass the function, but MatchCard's internal 'handleDragEnd' 
+              // and 'onTap' will now decide if it was a real click or a swipe.
               onClick={() => handleProfileClick(currentMatch.id)} 
             />
           </AnimatePresence>
         </div>
-        {/* Buttons container pulled closer */}
         <div className="w-full max-w-sm mx-auto px-6 py-4">
           <MatchButtons onLike={handleLike} onPass={handlePass} />
         </div>
@@ -237,7 +237,6 @@ export default function MatchesPage() {
     <div className="fixed inset-0 h-screen w-screen bg-[#FDFCFD] dark:bg-gray-950 flex flex-col overflow-hidden">
       <div className="flex-1 flex flex-col container mx-auto max-w-5xl overflow-hidden">
         
-        {/* HEADER - Tighter spacing */}
         <header className="px-4 pt-4 pb-2 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => router.back()} className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
@@ -272,7 +271,6 @@ export default function MatchesPage() {
           </div>
         </header>
 
-        {/* MAIN CONTENT AREA */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center">
