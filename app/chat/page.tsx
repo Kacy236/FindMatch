@@ -23,14 +23,32 @@ export default function ChatPage() {
     async function loadMatches() {
       try {
         const userMatches = await getUserMatches();
-        const chatData: ChatData[] = userMatches.map((match) => ({
-          id: match.id, 
-          user: match,
-          lastMessage: "Start your conversation!",
-          lastMessageTime: match.created_at,
-          unreadCount: 0,
-        }));
-        setChats(chatData);
+        
+        const chatData: ChatData[] = userMatches.map((match: any) => {
+          // Identify if the match is nested (common in Supabase/Prisma joins)
+          const profile = match.profiles || match.user || match;
+          
+          return {
+            id: match.id, 
+            user: {
+              ...profile,
+              full_name: profile.full_name || "User",
+              avatar_url: profile.avatar_url || "/default-avatar.png"
+            },
+            // Logic: Use the actual last message from DB, fallback to placeholder if null
+            lastMessage: match.last_message || "Start your conversation!",
+            // Logic: Use the message timestamp, fallback to match creation time
+            lastMessageTime: match.last_message_time || match.created_at,
+            unreadCount: match.unread_count || 0,
+          };
+        });
+
+        // Optional: Sort chats so the newest message is always at the top
+        const sortedChats = chatData.sort((a, b) => 
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+        );
+
+        setChats(sortedChats);
       } catch (error) {
         console.error("Failed to load chats:", error);
       } finally {
@@ -41,6 +59,7 @@ export default function ChatPage() {
   }, []);
 
   function formatTime(timestamp: string) {
+    if (!timestamp) return "";
     const date = new Date(timestamp);
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
@@ -65,7 +84,6 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 pb-20">
-      {/* Mobile-Optimized Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-50 dark:border-gray-900">
         <div className="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">Messages</h1>
@@ -93,15 +111,20 @@ export default function ChatPage() {
           </div>
         ) : (
           <div className="mt-4">
-            {/* New Matches Scroller (Top Section) */}
+            {/* New Matches Scroller */}
             <section className="px-6 mb-8">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">New Matches</h3>
               <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                 {chats.map((chat) => (
                   <Link key={`new-${chat.id}`} href={`/chat/${chat.id}`} className="flex-shrink-0 flex flex-col items-center gap-2">
                     <div className="w-16 h-16 rounded-full p-[2px] border-2 border-pink-500">
-                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-gray-950">
-                        <img src={chat.user.avatar_url || "/default-avatar.png"} alt="" className="w-full h-full object-cover" />
+                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-gray-950 relative">
+                        <Image 
+                          src={chat.user.avatar_url || "/default-avatar.png"} 
+                          alt="" 
+                          fill 
+                          className="object-cover" 
+                        />
                       </div>
                     </div>
                     <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 w-16 truncate text-center">
@@ -125,11 +148,12 @@ export default function ChatPage() {
                   >
                     <Link href={`/chat/${chat.id}`} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group">
                       <div className="relative flex-shrink-0">
-                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm">
-                          <img 
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm relative">
+                          <Image 
                             src={chat.user.avatar_url || "/default-avatar.png"} 
                             alt={chat.user.full_name} 
-                            className="w-full h-full object-cover transition-transform group-hover:scale-105" 
+                            fill
+                            className="object-cover transition-transform group-hover:scale-105" 
                           />
                         </div>
                         {chat.unreadCount > 0 && (
