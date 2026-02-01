@@ -64,8 +64,16 @@ export default function EditProfilePage() {
 
   async function handleFormSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setSaving(true);
     setError(null);
+
+    // FIX: Check if image is compulsory
+    if (!formData.avatar_url || formData.avatar_url.trim() === "") {
+      setError("A profile photo is required to save your profile.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    setSaving(true);
 
     try {
       // TypeScript fix: We cast to 'any' here if your UserProfile type is still strict, 
@@ -121,115 +129,128 @@ export default function EditProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-950 dark:to-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading profile...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-400 font-medium">Loading your profile...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="container mx-auto px-4 py-8">
-        <header className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Edit Profile
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Update your profile and dating preferences
-          </p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 sm:py-12 px-4">
+      <div className="max-w-3xl mx-auto">
+        {/* Header Section */}
+        <header className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">
+              Edit Profile
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm sm:text-base">
+              Update your information and who you're looking for
+            </p>
+          </div>
+          <button 
+            onClick={() => router.back()}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </header>
 
-        <div className="max-w-2xl mx-auto">
-          <form
-            className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8"
-            onSubmit={handleFormSubmit}
-          >
-            {/* Profile Picture Section */}
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
-                Profile Picture
-              </label>
-              <div className="flex items-center space-x-6">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-pink-500 ring-offset-2 bg-gray-100 dark:bg-gray-800">
+        <form onSubmit={handleFormSubmit} className="space-y-6">
+          
+          {/* Section: Profile Image */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-pink-500 rounded-full"></span>
+              Profile Photo
+            </h2>
+            <div className={`p-6 rounded-2xl border-2 transition-all ${!formData.avatar_url ? 'border-dashed border-pink-200 bg-pink-50/30 dark:bg-pink-900/10' : 'border-transparent bg-gray-50 dark:bg-gray-800/50'}`}>
+              <div className="flex flex-col sm:flex-row items-center gap-8">
+                <div className="relative group">
+                  <div className={`w-32 h-32 rounded-3xl overflow-hidden ring-4 transition-all duration-300 ${!formData.avatar_url ? 'ring-pink-400 animate-pulse' : 'ring-white dark:ring-gray-700 shadow-xl'}`}>
                     <img
-                      key={formData.avatar_url} // Force refresh when URL changes
+                      key={formData.avatar_url}
                       src={formData.avatar_url || "/default-avatar.png"}
                       alt="Profile"
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement;
                         target.src = "/default-avatar.png";
                       }}
                     />
                   </div>
-                  <PhotoUpload
-                    onPhotoUploaded={(url) => {
-                      console.log("Image Uploaded Successfully. URL:", url);
-                      setFormData((prev) => ({
-                        ...prev,
-                        avatar_url: url,
-                      }));
-                    }}
-                  />
+                  <div className="absolute -bottom-3 -right-3">
+                    <PhotoUpload
+                      onPhotoUploaded={(url) => {
+                        console.log("Image Uploaded Successfully. URL:", url);
+                        setFormData((prev) => ({ ...prev, avatar_url: url }));
+                        setError(null);
+                      }}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Upload a new profile picture
+                <div className="text-center sm:text-left flex-1">
+                  <h3 className={`text-base font-bold mb-1 ${!formData.avatar_url ? 'text-pink-600' : 'text-gray-900 dark:text-white'}`}>
+                    {formData.avatar_url ? 'Profile photo uploaded' : 'Upload a photo (Required)'}
+                  </h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    A clear photo helps you connect with more people. 
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-500">
-                    JPG, PNG or GIF. Max 5MB.
-                  </p>
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-2">
+                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">JPG</span>
+                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">PNG</span>
+                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">MAX 5MB</span>
+                  </div>
                 </div>
               </div>
             </div>
+          </section>
 
-            {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Full Name *
-                </label>
+          {/* Section: Basic Details */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-pink-500 rounded-full"></span>
+              Basic Details
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Full Name *</label>
                 <input
                   type="text"
                   name="full_name"
                   value={formData.full_name}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Username *
-                </label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Username *</label>
                 <input
                   type="text"
                   name="username"
                   value={formData.username}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  My Gender *
-                </label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">My Gender *</label>
                 <select
                   name="gender"
                   value={formData.gender}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white"
                 >
                   <option value="male">Male</option>
                   <option value="female">Female</option>
@@ -237,120 +258,117 @@ export default function EditProfilePage() {
                 </select>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Birthday *
-                </label>
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Birthday *</label>
                 <input
                   type="date"
                   name="birthdate"
                   value={formData.birthdate}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  My Body Type *
-                </label>
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">My Body Type *</label>
                 <select
                   name="body_type"
                   value={formData.body_type}
                   onChange={handleInputChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white"
                 >
                   {BODY_TYPE_OPTIONS.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
+                    <option key={type} value={type}>{type}</option>
                   ))}
                 </select>
               </div>
-            </div>
 
-            <div className="mb-8">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                About Me *
-              </label>
-              <textarea
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                required
-                rows={4}
-                maxLength={500}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 dark:bg-gray-700 dark:text-white resize-none"
-                placeholder="Tell others about yourself..."
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {formData.bio.length}/500 characters
-              </p>
-            </div>
-
-            {/* --- PREFERENCES SECTION --- */}
-            <div className="pt-8 border-t border-gray-200 dark:border-gray-700 mt-8">
-              <h3 className="text-xl font-bold text-pink-600 dark:text-pink-400 mb-6">
-                Discovery Preferences
-              </h3>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Min Age Preference
-                  </label>
-                  <input
-                    type="number"
-                    min="18"
-                    max="100"
-                    value={formData.preferences.age_range.min}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      preferences: { 
-                        ...prev.preferences, 
-                        age_range: { ...prev.preferences.age_range, min: parseInt(e.target.value) || 18 } 
-                      }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">About Me *</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleInputChange}
+                  required
+                  rows={4}
+                  maxLength={500}
+                  placeholder="What makes you, you?"
+                  className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white resize-none"
+                />
+                <div className="flex justify-end">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                    {formData.bio.length} / 500 characters
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Max Age Preference
-                  </label>
-                  <input
-                    type="number"
-                    min="18"
-                    max="100"
-                    value={formData.preferences.age_range.max}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      preferences: { 
-                        ...prev.preferences, 
-                        age_range: { ...prev.preferences.age_range, max: parseInt(e.target.value) || 100 } 
-                      }
-                    }))}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white"
-                  />
+              </div>
+            </div>
+          </section>
+
+          {/* Section: Preferences */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h2 className="text-lg font-bold text-pink-500 mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-pink-500 rounded-full"></span>
+              Discovery Preferences
+            </h2>
+
+            <div className="space-y-8">
+              {/* Age Range */}
+              <div className="space-y-4">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Preferred Age Range</label>
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-gray-400 ml-2">MIN</span>
+                    <input
+                      type="number"
+                      min="18"
+                      max="100"
+                      value={formData.preferences.age_range.min}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        preferences: { 
+                          ...prev.preferences, 
+                          age_range: { ...prev.preferences.age_range, min: parseInt(e.target.value) || 18 } 
+                        }
+                      }))}
+                      className="w-full px-4 py-2 rounded-xl border-none bg-gray-100 dark:bg-gray-800 font-bold dark:text-white"
+                    />
+                  </div>
+                  <div className="h-0.5 w-4 bg-gray-200 mt-4"></div>
+                  <div className="flex-1 space-y-1">
+                    <span className="text-[10px] text-gray-400 ml-2">MAX</span>
+                    <input
+                      type="number"
+                      min="18"
+                      max="100"
+                      value={formData.preferences.age_range.max}
+                      onChange={(e) => setFormData(prev => ({
+                        ...prev,
+                        preferences: { 
+                          ...prev.preferences, 
+                          age_range: { ...prev.preferences.age_range, max: parseInt(e.target.value) || 100 } 
+                        }
+                      }))}
+                      className="w-full px-4 py-2 rounded-xl border-none bg-gray-100 dark:bg-gray-800 font-bold dark:text-white"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Interested in
-                </label>
-                <div className="flex flex-wrap gap-2">
+              {/* Gender Preference */}
+              <div className="space-y-4">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Interested in</label>
+                <div className="flex flex-wrap gap-3">
                   {(["male", "female", "other"] as const).map((g) => (
                     <button
                       key={g}
                       type="button"
                       onClick={() => toggleGenderPreference(g)}
-                      className={`px-4 py-2 rounded-full border text-sm transition-all ${
+                      className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all transform active:scale-95 ${
                         formData.preferences.gender_preference.includes(g)
-                          ? "bg-pink-500 border-pink-500 text-white shadow-md"
-                          : "bg-transparent border-gray-300 dark:border-gray-600 text-gray-500"
+                          ? "bg-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-none"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
                       }`}
                     >
                       {g.charAt(0).toUpperCase() + g.slice(1)}
@@ -359,54 +377,63 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              <div className="mb-8">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Preferred Body Types
-                </label>
+              {/* Body Type Preference */}
+              <div className="space-y-4">
+                <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Preferred Body Types</label>
                 <div className="flex flex-wrap gap-2">
                   {BODY_TYPE_OPTIONS.map((type) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => toggleBodyPreference(type)}
-                      className={`px-4 py-2 rounded-full border text-sm transition-all ${
+                      className={`px-4 py-2 rounded-xl text-xs font-medium border-2 transition-all ${
                         formData.preferences.body_types.includes(type)
-                          ? "bg-red-500 border-red-500 text-white shadow-md"
-                          : "bg-transparent border-gray-300 dark:border-gray-600 text-gray-500"
+                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md"
+                          : "bg-transparent border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-300"
                       }`}
                     >
                       {type}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Multiple selections allowed</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest ml-1">Multiple selections allowed</p>
               </div>
             </div>
+          </section>
 
-            {error && (
-              <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            <div className="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-6 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-8 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white font-bold rounded-lg hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
+          {/* Sticky Mobile Error & Action Bar */}
+          {error && (
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold animate-pulse">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {error}
             </div>
-          </form>
-        </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 pt-4 pb-10">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="w-full sm:w-auto px-10 py-4 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors order-2 sm:order-1"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full sm:flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-4 px-10 rounded-3xl shadow-xl shadow-rose-200 dark:shadow-none hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
+            >
+              {saving ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </div>
+              ) : "Save Profile Changes"}
+            </button>
+          </div>
+
+        </form>
       </div>
     </div>
   );

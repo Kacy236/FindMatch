@@ -1,4 +1,5 @@
 "use client";
+
 import { 
   getPotentialMatches, 
   likeUser, 
@@ -12,6 +13,7 @@ import MatchCard from "@/components/MatchCard";
 import MatchButtons from "@/components/MatchButtons";
 import MatchNotification from "@/components/MatchNotification";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 
 type ViewMode = "discover" | "whoLikedMe" | "iLiked";
 
@@ -27,7 +29,70 @@ export default function MatchesPage() {
 
   const router = useRouter();
 
-  // Load Main Discovery Profiles
+  // --- LOGIC FUNCTIONS ---
+
+  // Navigates to the individual user's profile page
+  function handleProfileClick(userId: string) {
+    router.push(`/profile/${userId}`);
+  }
+
+  async function handleLike() {
+    if (currentIndex < potentialMatches.length) {
+      const likedUser = potentialMatches[currentIndex];
+      try {
+        const result = await likeUser(likedUser.id);
+        if (result.isMatch) {
+          setMatchedUser(result.matchedUser!);
+          setShowMatchNotification(true);
+        }
+        setCurrentIndex((prev) => prev + 1);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  }
+
+  function handlePass() {
+    if (currentIndex < potentialMatches.length) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  }
+
+  function handleSwipe(direction: "left" | "right") {
+    if (direction === "right") {
+      handleLike();
+    } else {
+      handlePass();
+    }
+  }
+
+  function handleCloseMatchNotification() {
+    setShowMatchNotification(false);
+    setMatchedUser(null);
+  }
+
+  function handleStartChat() {
+    if (matchedUser) {
+      router.push(`/messages/${matchedUser.id}`);
+    }
+  }
+
+  async function handleLikeBack(userId: string) {
+    try {
+      const result = await likeUser(userId);
+      if (result.isMatch) {
+        setMatchedUser(result.matchedUser!);
+        setShowMatchNotification(true);
+      }
+      const data = await getUsersWhoLikedMe();
+      setSecondaryProfiles(data);
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  // --- EFFECTS ---
+
   useEffect(() => {
     async function loadUsers() {
       setLoading(true);
@@ -43,7 +108,6 @@ export default function MatchesPage() {
     loadUsers();
   }, []);
 
-  // Load Secondary Lists (Who Liked Me / I Liked) when switching tabs
   useEffect(() => {
     if (viewMode === "discover") return;
 
@@ -63,81 +127,45 @@ export default function MatchesPage() {
     loadSecondary();
   }, [viewMode]);
 
-  async function handleLike() {
-    if (currentIndex < potentialMatches.length) {
-      const likedUser = potentialMatches[currentIndex];
-      try {
-        const result = await likeUser(likedUser.id);
-        if (result.isMatch) {
-          setMatchedUser(result.matchedUser!);
-          setShowMatchNotification(true);
-        }
-        setCurrentIndex((prev) => prev + 1);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  }
-
-  // Used for "Like Back" from the "Who Liked Me" list
-  async function handleLikeBack(userId: string) {
-    try {
-      const result = await likeUser(userId);
-      if (result.isMatch) {
-        setMatchedUser(result.matchedUser!);
-        setShowMatchNotification(true);
-      }
-      // Refresh the specific list
-      const data = await getUsersWhoLikedMe();
-      setSecondaryProfiles(data);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
-  function handlePass() {
-    if (currentIndex < potentialMatches.length) {
-      setCurrentIndex((prev) => prev + 1);
-    }
-  }
-
-  function handleCloseMatchNotification() {
-    setShowMatchNotification(false);
-    setMatchedUser(null);
-  }
-
-  function handleStartChat() {
-    if (matchedUser) {
-      router.push(`/messages/${matchedUser.id}`);
-    }
-  }
-
   // --- RENDERING HELPERS ---
 
   const renderDiscover = () => {
     if (currentIndex >= potentialMatches.length) {
       return (
-        <div className="text-center max-w-md mx-auto p-8 bg-white dark:bg-gray-800 rounded-3xl shadow-xl">
-          <div className="w-20 h-20 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <span className="text-3xl">✨</span>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-sm mx-auto p-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[2.5rem] shadow-xl border border-white/20"
+        >
+          <div className="w-24 h-24 bg-gradient-to-tr from-pink-100 to-red-100 dark:from-pink-900/30 dark:to-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">✨</span>
           </div>
-          <h2 className="text-xl font-bold mb-2">All caught up!</h2>
-          <p className="text-gray-500 mb-6">No more new profiles nearby. Try checking who liked you!</p>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3">All caught up!</h2>
+          <p className="text-gray-500 dark:text-gray-400 mb-8">No more new profiles nearby.</p>
           <button
             onClick={() => setViewMode("whoLikedMe")}
-            className="bg-pink-500 text-white px-6 py-2 rounded-full font-semibold"
+            className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-4 rounded-2xl font-bold"
           >
             See Who Liked You
           </button>
-        </div>
+        </motion.div>
       );
     }
 
     const currentMatch = potentialMatches[currentIndex];
     return (
-      <div className="max-w-md mx-auto">
-        <MatchCard user={currentMatch} />
-        <div className="mt-8">
+      <div className="flex flex-col items-center justify-center space-y-6">
+        <div className="w-full max-w-md relative h-[60vh] sm:h-[70vh]">
+          <AnimatePresence mode="popLayout">
+            <MatchCard 
+              key={currentMatch.id} 
+              user={currentMatch} 
+              onSwipe={handleSwipe}
+              onClick={() => handleProfileClick(currentMatch.id)} 
+            />
+          </AnimatePresence>
+        </div>
+        <div className="w-full max-w-sm px-4">
           <MatchButtons onLike={handleLike} onPass={handlePass} />
         </div>
       </div>
@@ -147,102 +175,123 @@ export default function MatchesPage() {
   const renderSecondaryList = () => {
     if (secondaryProfiles.length === 0) {
       return (
-        <div className="text-center py-20 text-gray-500">
-          <p className="text-lg">No profiles to show here yet.</p>
+        <div className="text-center py-32 text-gray-400 font-medium italic">
+          Nothing to see here yet...
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 max-w-4xl mx-auto">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2 pb-10">
         {secondaryProfiles.map((profile) => (
-          <div key={profile.id} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-md flex flex-col">
-            <div className="relative aspect-[3/4] w-full">
+          <motion.div 
+            layout
+            key={profile.id} 
+            className="group relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:ring-2 hover:ring-pink-500 transition-all cursor-pointer"
+          >
+            {/* Clickable Area for Profile */}
+            <div 
+              onClick={() => handleProfileClick(profile.id)}
+              className="relative aspect-[3/4] w-full overflow-hidden"
+            >
               <Image 
                 src={profile.avatar_url || "/default-avatar.png"} 
                 alt={profile.full_name} 
                 fill 
-                className="object-cover"
+                className="object-cover transition-transform duration-500 group-hover:scale-110"
               />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+              <div className="absolute bottom-3 left-3 right-3">
+                <p className="font-bold text-white text-sm truncate">{profile.full_name}</p>
+              </div>
             </div>
+            
             <div className="p-3">
-              <p className="font-bold text-sm truncate">{profile.full_name}</p>
-              {viewMode === "whoLikedMe" && (
+              {viewMode === "whoLikedMe" ? (
                 <button 
-                  onClick={() => handleLikeBack(profile.id)}
-                  className="w-full mt-2 bg-pink-500 text-white text-xs py-2 rounded-lg font-bold hover:bg-pink-600"
+                  onClick={(e) => {
+                    e.stopPropagation(); // Prevents clicking the profile when clicking the button
+                    handleLikeBack(profile.id);
+                  }}
+                  className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold hover:bg-pink-600 transition-colors"
                 >
                   Like Back
                 </button>
-              )}
-              {viewMode === "iLiked" && (
-                <p className="text-xs text-gray-400 mt-2 italic">Pending...</p>
+              ) : (
+                <div className="flex items-center justify-center py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                  Pending
+                </div>
               )}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 pb-20">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-[#FDFCFD] dark:bg-gray-950 transition-colors">
+      <div className="container mx-auto max-w-5xl px-4 py-6 md:py-10">
         
-        {/* HEADER & TABS */}
-        <header className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={() => router.back()} className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        {/* HEADER */}
+        <header className="mb-8 sticky top-0 z-40 bg-[#FDFCFD]/80 dark:bg-gray-950/80 backdrop-blur-md pt-2">
+          <div className="flex items-center justify-between mb-8">
+            <button onClick={() => router.back()} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+              <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-red-500">
+            <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
               {viewMode === "discover" ? "Discover" : viewMode === "whoLikedMe" ? "Interested" : "Sent"}
             </h1>
-            <div className="w-10" />
+            <div className="w-11" />
           </div>
 
-          <div className="flex bg-gray-200/50 dark:bg-gray-800/50 p-1 rounded-xl max-w-sm mx-auto">
-            <button 
-              onClick={() => setViewMode("discover")}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === "discover" ? "bg-white dark:bg-gray-700 shadow-sm text-pink-500" : "text-gray-500"}`}
-            >
-              Discover
-            </button>
-            <button 
-              onClick={() => setViewMode("whoLikedMe")}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === "whoLikedMe" ? "bg-white dark:bg-gray-700 shadow-sm text-pink-500" : "text-gray-500"}`}
-            >
-              Likes You
-            </button>
-            <button 
-              onClick={() => setViewMode("iLiked")}
-              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${viewMode === "iLiked" ? "bg-white dark:bg-gray-700 shadow-sm text-pink-500" : "text-gray-500"}`}
-            >
-              Sent
-            </button>
+          <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-[1.25rem] max-w-sm mx-auto shadow-inner">
+            {[
+              { id: "discover", label: "Discover" },
+              { id: "whoLikedMe", label: "Likes You" },
+              { id: "iLiked", label: "Sent" }
+            ].map((tab) => (
+              <button 
+                key={tab.id}
+                onClick={() => setViewMode(tab.id as ViewMode)}
+                className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition-all duration-300 ${
+                  viewMode === tab.id 
+                    ? "bg-white dark:bg-gray-800 shadow-md text-pink-600 dark:text-pink-400" 
+                    : "text-gray-400"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
         </header>
 
-        {/* CONTENT AREA */}
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
-            <p className="mt-4 text-sm text-gray-500">Loading profiles...</p>
-          </div>
-        ) : (
-          viewMode === "discover" ? renderDiscover() : renderSecondaryList()
-        )}
+        {/* MAIN CONTENT */}
+        <main>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-32">
+              <div className="h-16 w-16 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
+              <p className="mt-6 text-sm font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
+            </div>
+          ) : (
+            <div className="min-h-[60vh]">
+              {viewMode === "discover" ? renderDiscover() : renderSecondaryList()}
+            </div>
+          )}
+        </main>
 
         {/* MATCH POPUP */}
-        {showMatchNotification && matchedUser && (
-          <MatchNotification
-            match={matchedUser}
-            onClose={handleCloseMatchNotification}
-            onStartChat={handleStartChat}
-          />
-        )}
+        <AnimatePresence>
+          {showMatchNotification && matchedUser && (
+            <MatchNotification
+              match={matchedUser}
+              onClose={handleCloseMatchNotification}
+              onStartChat={handleStartChat}
+            />
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

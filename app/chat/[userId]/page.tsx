@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { getUserMatches } from "@/lib/actions/matches";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ChatConversationPage() {
   const [otherUser, setOtherUser] = useState<UserProfile | null>(null);
@@ -15,10 +16,7 @@ export default function ChatConversationPage() {
   const params = useParams();
   const { user } = useAuth();
   
-  // FIX: In Next.js, if your folder is [id], the param is 'id', not 'userId'
-  // Also ensuring we fall back to userId if that's how your route is actually named
   const chatId = (params.id || params.userId) as string;
-
   const chatInterfaceRef = useRef<{ handleVideoCall: () => void } | null>(null);
 
   useEffect(() => {
@@ -30,17 +28,12 @@ export default function ChatConversationPage() {
       try {
         setLoading(true);
         const userMatches = await getUserMatches();
-        
-        // Searching for the match. 
-        // Note: If you use my previous 'getUserMatches' suggestion, 
-        // you'd check 'match.profile.id === chatId' or 'match.matchId === chatId'
         const matchedUser = userMatches.find((match) => match.id === chatId);
 
         if (isMounted) {
           if (matchedUser) {
             setOtherUser(matchedUser);
           } else {
-            console.error("No match found for ID:", chatId);
             router.push("/chat");
           }
         }
@@ -53,44 +46,38 @@ export default function ChatConversationPage() {
     }
 
     loadUserData();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [chatId, router, user]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Connecting to chat...
-          </p>
-        </div>
+      <div className="fixed inset-0 bg-white dark:bg-gray-950 flex flex-col items-center justify-center z-50">
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="w-20 h-20 bg-pink-500/10 rounded-full flex items-center justify-center mb-4"
+        >
+          <div className="h-10 w-10 rounded-full border-t-2 border-pink-500 animate-spin" />
+        </motion.div>
+        <p className="text-xs font-black uppercase tracking-widest text-gray-400">Securing Connection</p>
       </div>
     );
   }
 
   if (!otherUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-24 h-24 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">❌</span>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            User not found
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            The user you're looking for doesn't exist or you don't have
-            permission to chat with them.
+      <div className="h-screen bg-white dark:bg-gray-950 flex items-center justify-center p-6">
+        <div className="text-center max-w-xs">
+          <div className="text-6xl mb-6">🔒</div>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Private Room</h2>
+          <p className="text-gray-500 text-sm mb-8 leading-relaxed">
+            This conversation is no longer available or the link has expired.
           </p>
           <button
             onClick={() => router.push("/chat")}
-            className="bg-gradient-to-r from-pink-500 to-red-500 text-white font-semibold py-3 px-6 rounded-full hover:from-pink-600 hover:to-red-600 transition-all duration-200"
+            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold py-4 rounded-2xl active:scale-95 transition-transform"
           >
-            Back to Messages
+            Return to Inbox
           </button>
         </div>
       </div>
@@ -98,18 +85,44 @@ export default function ChatConversationPage() {
   }
 
   return (
-    <div className="h-screen bg-gradient-to-br from-pink-50 to-red-50 dark:from-gray-900 dark:to-gray-800">
-      <div className="max-w-4xl mx-auto h-full flex flex-col">
-        <ChatHeader
-          user={otherUser}
-          onVideoCall={() => {
-            chatInterfaceRef.current?.handleVideoCall();
-          }}
-        />
+    <div className="fixed inset-0 bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
+      {/* Container limited to a readable width on Desktop, full width on Mobile */}
+      <div className="mx-auto w-full max-w-2xl h-full flex flex-col shadow-2xl shadow-black/5">
+        
+        {/* Animated Header Component */}
+        <motion.div 
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="z-50 border-b border-gray-100 dark:border-gray-900 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl"
+        >
+          <ChatHeader
+            user={otherUser}
+            onVideoCall={() => {
+              chatInterfaceRef.current?.handleVideoCall();
+            }}
+          />
+        </motion.div>
 
-        <div className="flex-1 min-h-0">
-          <StreamChatInterface otherUser={otherUser} ref={chatInterfaceRef} />
-        </div>
+        {/* Chat Interface Area */}
+        <main className="flex-1 relative min-h-0 bg-[#FDFCFD] dark:bg-gray-950">
+          <AnimatePresence mode="wait">
+            <motion.div 
+              key={otherUser.id}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="h-full"
+            >
+              <StreamChatInterface 
+                otherUser={otherUser} 
+                ref={chatInterfaceRef} 
+              />
+            </motion.div>
+          </AnimatePresence>
+        </main>
+        
+        {/* Safe Area Spacer for iOS Home Bar */}
+        <div className="h-[env(safe-area-inset-bottom)] bg-white dark:bg-gray-950" />
       </div>
     </div>
   );
