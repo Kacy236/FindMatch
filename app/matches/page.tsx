@@ -131,30 +131,32 @@ export default function MatchesPage() {
   const renderDiscover = () => {
     if (currentIndex >= potentialMatches.length) {
       return (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center max-w-sm mx-auto p-10 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-[2.5rem] shadow-xl border border-white/20"
-        >
-          <div className="w-24 h-24 bg-gradient-to-tr from-pink-100 to-red-100 dark:from-pink-900/30 dark:to-red-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
-            <span className="text-4xl">✨</span>
-          </div>
-          <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3">All caught up!</h2>
-          <p className="text-gray-500 dark:text-gray-400 mb-8">No more new profiles nearby.</p>
-          <button
-            onClick={() => setViewMode("whoLikedMe")}
-            className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-4 rounded-2xl font-bold"
+        <div className="flex-1 flex items-center justify-center p-6">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center max-w-sm w-full p-10 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800"
           >
-            See Who Liked You
-          </button>
-        </motion.div>
+            <div className="w-20 h-20 bg-pink-50 dark:bg-pink-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <span className="text-4xl">✨</span>
+            </div>
+            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3">All caught up!</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">No more new profiles nearby.</p>
+            <button
+              onClick={() => setViewMode("whoLikedMe")}
+              className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-500/20"
+            >
+              See Who Liked You
+            </button>
+          </motion.div>
+        </div>
       );
     }
 
     const currentMatch = potentialMatches[currentIndex];
     return (
-      <div className="flex flex-col items-center justify-center space-y-6 pb-20">
-        <div className="w-full max-w-md relative h-[60vh] sm:h-[70vh]">
+      <div className="flex-1 flex flex-col justify-between overflow-hidden pb-6">
+        <div className="flex-1 relative w-full max-w-md mx-auto px-4 py-2">
           <AnimatePresence mode="popLayout">
             <MatchCard 
               key={currentMatch.id} 
@@ -164,7 +166,7 @@ export default function MatchesPage() {
             />
           </AnimatePresence>
         </div>
-        <div className="w-full max-w-sm px-4">
+        <div className="w-full max-w-sm mx-auto px-6 mt-2">
           <MatchButtons onLike={handleLike} onPass={handlePass} />
         </div>
       </div>
@@ -174,68 +176,69 @@ export default function MatchesPage() {
   const renderSecondaryList = () => {
     if (secondaryProfiles.length === 0) {
       return (
-        <div className="text-center py-32 text-gray-400 font-medium italic">
+        <div className="flex-1 flex items-center justify-center text-gray-400 font-medium italic">
           Nothing to see here yet...
         </div>
       );
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2 pb-24">
-        {secondaryProfiles.map((profile) => (
-          <motion.div 
-            layout
-            key={profile.id} 
-            className="group relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:ring-2 hover:ring-pink-500 transition-all"
-          >
-            {/* Clickable Area restricted ONLY to the image container */}
-            <div 
-              onClick={() => handleProfileClick(profile.id)}
-              className="relative aspect-[3/4] w-full overflow-hidden cursor-pointer active:opacity-90"
+      <div className="flex-1 overflow-y-auto px-4 pb-10">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {secondaryProfiles.map((profile) => (
+            <motion.div 
+              layout
+              key={profile.id} 
+              className="group relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700"
             >
-              <Image 
-                src={profile.avatar_url || "/default-avatar.png"} 
-                alt={profile.full_name} 
-                fill 
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
-              <div className="absolute bottom-3 left-3 right-3">
-                <p className="font-bold text-white text-sm truncate">{profile.full_name}</p>
-              </div>
-            </div>
-            
-            <div className="p-3">
-              {viewMode === "whoLikedMe" ? (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleLikeBack(profile.id);
-                  }}
-                  className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold hover:bg-pink-600 transition-colors"
-                >
-                  Like Back
-                </button>
-              ) : (
-                <div className="flex items-center justify-center py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
-                  Pending
+              <div 
+                onClick={() => handleProfileClick(profile.id)}
+                className="relative aspect-[3/4] w-full overflow-hidden cursor-pointer"
+              >
+                <Image 
+                  src={profile.avatar_url || "/default-avatar.png"} 
+                  alt={profile.full_name} 
+                  fill 
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                <div className="absolute bottom-3 left-3 right-3">
+                  <p className="font-bold text-white text-sm truncate">{profile.full_name}</p>
                 </div>
-              )}
-            </div>
-          </motion.div>
-        ))}
+              </div>
+              
+              <div className="p-3">
+                {viewMode === "whoLikedMe" ? (
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleLikeBack(profile.id);
+                    }}
+                    className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold"
+                  >
+                    Like Back
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-center py-2 text-xs font-semibold text-gray-400 uppercase tracking-widest">
+                    Pending
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] dark:bg-gray-950 transition-colors overflow-y-auto overflow-x-hidden">
-      <div className="container mx-auto max-w-5xl px-4 py-6 md:py-10">
+    <div className="fixed inset-0 h-screen w-screen bg-[#FDFCFD] dark:bg-gray-950 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col container mx-auto max-w-5xl overflow-hidden">
         
         {/* HEADER */}
-        <header className="mb-8 sticky top-0 z-40 bg-[#FDFCFD]/80 dark:bg-gray-950/80 backdrop-blur-md pt-2">
-          <div className="flex items-center justify-between mb-8">
-            <button onClick={() => router.back()} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl">
+        <header className="px-4 pt-6 pb-4 flex-shrink-0">
+          <div className="flex items-center justify-between mb-6">
+            <button onClick={() => router.back()} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
@@ -267,15 +270,15 @@ export default function MatchesPage() {
           </div>
         </header>
 
-        {/* MAIN CONTENT */}
-        <main className="relative z-10">
+        {/* MAIN CONTENT AREA */}
+        <main className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-32">
-              <div className="h-16 w-16 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
-              <p className="mt-6 text-sm font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
+            <div className="flex-1 flex flex-col items-center justify-center">
+              <div className="h-12 w-12 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
+              <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
             </div>
           ) : (
-            <div className="min-h-[60vh]">
+            <div className="flex-1 flex flex-col overflow-hidden">
               {viewMode === "discover" ? renderDiscover() : renderSecondaryList()}
             </div>
           )}
