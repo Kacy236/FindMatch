@@ -15,7 +15,7 @@ import {
   useState,
 } from "react";
 import { Channel, Event, StreamChat } from "stream-chat";
-import { text } from "stream/consumers";
+import { motion, AnimatePresence } from "framer-motion";
 import VideoCall from "./VideoCall";
 
 interface Message {
@@ -74,7 +74,7 @@ export default function StreamChatInterface({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, isTyping]);
 
   useEffect(() => {
     const container = messagesContainerRef.current;
@@ -83,7 +83,7 @@ export default function StreamChatInterface({
       container.addEventListener("scroll", handleScroll);
       return () => container.removeEventListener("scroll", handleScroll);
     }
-  }, [handleScroll]);
+  }, []);
 
   useEffect(() => {
     setShowVideoCall(false);
@@ -312,14 +312,18 @@ export default function StreamChatInterface({
 
   if (error) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-900 p-4">
-        <div className="text-center">
-          <p className="text-red-500 font-semibold">{error}</p>
+      <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-950 p-4">
+        <div className="text-center max-w-sm">
+          <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl text-red-500">⚠️</span>
+          </div>
+          <p className="text-gray-900 dark:text-white font-bold text-lg mb-2">Connection Error</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">{error}</p>
           <button 
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg"
+            className="w-full py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-2xl transition-all active:scale-95"
           >
-            Retry
+            Retry Connection
           </button>
         </div>
       </div>
@@ -328,11 +332,14 @@ export default function StreamChatInterface({
 
   if (!client || !channel) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-white dark:bg-gray-900">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-950">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">
-            Setting up chat...
+          <div className="relative w-16 h-16 mx-auto mb-4">
+            <div className="absolute inset-0 border-4 border-pink-100 dark:border-pink-900/20 rounded-full"></div>
+            <div className="absolute inset-0 border-4 border-pink-500 rounded-full border-t-transparent animate-spin"></div>
+          </div>
+          <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">
+            Setting up your secure chat...
           </p>
         </div>
       </div>
@@ -340,54 +347,61 @@ export default function StreamChatInterface({
   }
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-gray-900">
+    <div className="h-full flex flex-col bg-gray-50 dark:bg-gray-950 relative overflow-hidden">
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth chat-scrollbar relative"
-        style={{ scrollBehavior: "smooth" }}
+        className="flex-1 overflow-y-auto px-4 py-6 space-y-4 scroll-smooth hide-scrollbar"
       >
-        {messages.map((message, key) => (
-          <div
-            key={message.id || key}
-            className={`flex ${
-              message.sender === "me" ? "justify-end" : "justify-start"
-            }`}
-          >
-            <div
-              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                message.sender === "me"
-                  ? "bg-gradient-to-r from-pink-500 to-red-500 text-white"
-                  : "bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white"
-              }`}
+        {messages.map((message, idx) => {
+          const isMe = message.sender === "me";
+          const isLastInGroup = idx === messages.length - 1 || messages[idx + 1].sender !== message.sender;
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              key={message.id || idx}
+              className={`flex items-end gap-2 ${isMe ? "justify-end" : "justify-start"}`}
             >
-              <p className="text-sm">{message.text}</p>
-              <p
-                className={`text-xs mt-1 ${
-                  message.sender === "me"
-                    ? "text-pink-100"
-                    : "text-gray-500 dark:text-gray-400"
-                }`}
-              >
-                {formatTime(message.timestamp)}
-              </p>
-            </div>
-          </div>
-        ))}
+              {!isMe && (
+                <div className="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-800 overflow-hidden flex-shrink-0 mb-1">
+                  {isLastInGroup && (
+                    <img src={otherUser.avatar_url} alt="" className="w-full h-full object-cover" />
+                  )}
+                </div>
+              )}
+              
+              <div className="flex flex-col group max-w-[75%] lg:max-w-[60%]">
+                <div 
+                  className={`px-4 py-2.5 rounded-[20px] shadow-sm text-[15px] leading-relaxed ${
+                    isMe 
+                      ? "bg-gradient-to-br from-pink-500 to-red-600 text-white rounded-br-none" 
+                      : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-bl-none border border-gray-100 dark:border-gray-700"
+                  }`}
+                >
+                  <p>{message.text}</p>
+                </div>
+                <span className={`text-[10px] mt-1 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                  isMe ? "text-right mr-1" : "text-left ml-1"
+                } text-gray-400 dark:text-gray-500`}>
+                  {formatTime(message.timestamp)}
+                </span>
+              </div>
+            </motion.div>
+          );
+        })}
 
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white px-4 py-2 rounded-2xl">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.1s" }}
-                ></div>
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: "0.2s" }}
-                ></div>
-              </div>
+          <div className="flex items-center gap-2 ml-10">
+            <div className="bg-white dark:bg-gray-800 px-3 py-2 rounded-2xl border border-gray-100 dark:border-gray-700 flex gap-1">
+              {[0, 1, 2].map((i) => (
+                <motion.div
+                  key={i}
+                  animate={{ y: [0, -4, 0] }}
+                  transition={{ repeat: Infinity, duration: 0.6, delay: i * 0.1 }}
+                  className="w-1.5 h-1.5 bg-pink-400 rounded-full"
+                />
+              ))}
             </div>
           </div>
         )}
@@ -395,112 +409,106 @@ export default function StreamChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {showScrollButton && (
-        <div className="absolute bottom-20 right-6 z-10">
-          <button
+      <AnimatePresence>
+        {showScrollButton && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.5 }}
             onClick={scrollToBottom}
-            className="bg-pink-500 hover:bg-pink-600 text-white p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
-            title="Scroll to bottom"
+            className="absolute bottom-24 right-6 p-3 bg-white dark:bg-gray-800 text-pink-500 rounded-full shadow-xl border border-gray-100 dark:border-gray-700 z-20 hover:scale-110 active:scale-95 transition-all"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 14l-7 7m0 0l-7-7m7 7V3"
-              />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
             </svg>
-          </button>
-        </div>
-      )}
+          </motion.button>
+        )}
+      </AnimatePresence>
 
-      {/* Message Input */}
-
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-        <form className="flex space-x-2" onSubmit={handleSendMessage}>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => {
-              setNewMessage(e.target.value);
-
-              if (channel && e.target.value.length > 0) {
-                channel.keystroke();
-              }
-            }}
-            onFocus={(e) => {
-              if (channel) {
-                channel.keystroke();
-              }
-            }}
-            placeholder="Type a message..."
-            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-full focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
-            disabled={!channel}
-          />
+      {/* Message Input Area */}
+      <div className="bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 p-4 pb-8 md:pb-4">
+        <form className="max-w-4xl mx-auto flex items-end gap-2" onSubmit={handleSendMessage}>
+          <div className="flex-1 relative bg-gray-100 dark:bg-gray-800 rounded-[24px] focus-within:ring-2 focus-within:ring-pink-500/20 transition-all">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => {
+                setNewMessage(e.target.value);
+                if (channel && e.target.value.length > 0) {
+                  channel.keystroke();
+                }
+              }}
+              onFocus={() => {
+                if (channel) channel.keystroke();
+              }}
+              placeholder="Type a message..."
+              className="w-full px-5 py-3 bg-transparent border-none focus:ring-0 text-[15px] dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+              disabled={!channel}
+            />
+          </div>
 
           <button
             type="submit"
             disabled={!newMessage.trim() || !channel}
-            className="px-6 py-2 bg-gradient-to-r from-pink-500 to-red-500 text-white rounded-full hover:from-pink-600 hover:to-red-600 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-12 h-12 flex items-center justify-center bg-gradient-to-tr from-pink-500 to-red-500 text-white rounded-full shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 disabled:opacity-40 disabled:grayscale transition-all duration-200"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 12h14m-7-7l7 7-7 7"
-              />
+            <svg className="w-5 h-5 rotate-45 -translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           </button>
         </form>
       </div>
 
-      {showIncomingCall && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-sm mx-4 shadow-2xl">
-            <div className="text-center">
-              <div className="w-20 h-20 rounded-full overflow-hidden mx-auto mb-4 border-4 border-pink-500">
-                <img
-                  src={otherUser.avatar_url}
-                  alt={otherUser.full_name}
-                  className="w-full h-full object-cover"
+      {/* Incoming Call Overlay */}
+      <AnimatePresence>
+        {showIncomingCall && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-[1100] p-6"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-8 w-full max-w-sm shadow-2xl text-center border border-white/10"
+            >
+              <div className="relative w-24 h-24 mx-auto mb-6">
+                <div className="absolute inset-0 bg-pink-500 rounded-full animate-ping opacity-20" />
+                <img 
+                  src={otherUser.avatar_url} 
+                  alt={otherUser.full_name} 
+                  className="relative w-full h-full rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-xl" 
                 />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Incoming Video Call
+              <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-1">
+                {callerName}
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                {callerName} is calling you
+              <p className="text-pink-500 font-bold text-xs uppercase tracking-widest mb-8">
+                Incoming Video Call
               </p>
-              <div className="flex space-x-4">
-                <button
-                  onClick={handleDeclineCall}
-                  className="flex-1 bg-red-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-red-600 transition-colors duration-200"
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={handleDeclineCall} 
+                  className="flex-1 py-4 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-2xl font-bold hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all"
                 >
                   Decline
                 </button>
-                <button
-                  onClick={handleAcceptCall}
-                  className="flex-1 bg-green-500 text-white py-3 px-6 rounded-full font-semibold hover:bg-green-600 transition-colors duration-200"
+                <button 
+                  onClick={handleAcceptCall} 
+                  className="flex-1 py-4 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-green-500/30 hover:scale-105 active:scale-95 transition-all"
                 >
                   Accept
                 </button>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
+      {/* Video Call Modal Container */}
       {showVideoCall && videoCallId && (
         <VideoCall
           onCallEnd={handleCallEnd}

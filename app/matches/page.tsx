@@ -253,9 +253,9 @@ export default function MatchesPage() {
           {/* UPGRADED NAVIGATION TABS */}
           <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-[1.5rem] max-w-md mx-auto shadow-inner border border-gray-200/50 dark:border-gray-800">
             {[
-              { id: "discover", label: "Discover", icon: "🔥" },
-              { id: "whoLikedMe", label: "Likes You", icon: "💖" },
-              { id: "iLiked", label: "Sent", icon: "✉️" }
+              { id: "discover", label: "Discover", icon: "🔍" },
+              { id: "whoLikedMe", label: "Likes You", icon: "❤️" },
+              { id: "iLiked", label: "Sent Likes", icon: "🤞" }
             ].map((tab) => {
               const isActive = viewMode === tab.id;
               return (
