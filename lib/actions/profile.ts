@@ -5,6 +5,27 @@ import { createClient } from "../supabase/server";
 import { revalidatePath } from "next/cache";
 
 /**
+ * Fetches a specific user's profile by their ID.
+ * This is used for viewing other people's profiles (e.g., /profile/[id]).
+ */
+export async function getUserProfileById(id: string) {
+  const supabase = await createClient();
+
+  const { data: profile, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user profile by ID:", error);
+    return null;
+  }
+
+  return profile as UserProfile;
+}
+
+/**
  * Fetches the current user's profile from the 'users' table.
  */
 export async function getCurrentUserProfile() {

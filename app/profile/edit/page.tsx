@@ -8,8 +8,33 @@ import {
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-// Standard options for body types
+// Standard options
 const BODY_TYPE_OPTIONS = ["Slim", "Athletic", "Average", "Curvy", "Plus Size"];
+const INTEREST_OPTIONS = [
+  "Music", "Travel", "Cooking", "Gaming", "Fitness", 
+  "Art", "Movies", "Photography", "Reading", "Dancing",
+  "Hiking", "Tech", "Fashion", "Yoga", "Coffee"
+];
+
+// Define a type that allows numbers to be empty strings during editing
+interface ProfileFormData {
+  full_name: string;
+  username: string;
+  bio: string;
+  gender: "male" | "female" | "other";
+  body_type: string;
+  birthdate: string;
+  avatar_url: string;
+  preferences: {
+    age_range: { 
+      min: number | ""; 
+      max: number | ""; 
+    };
+    gender_preference: ("male" | "female" | "other")[];
+    body_types: string[];
+    interests: string[];
+  };
+}
 
 export default function EditProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -17,18 +42,19 @@ export default function EditProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ProfileFormData>({
     full_name: "",
     username: "",
     bio: "",
-    gender: "male" as "male" | "female" | "other",
-    body_type: "Average" as string, // User's own body type
+    gender: "male",
+    body_type: "Average",
     birthdate: "",
     avatar_url: "",
     preferences: {
       age_range: { min: 18, max: 100 },
-      gender_preference: [] as ("male" | "female" | "other")[],
-      body_types: [] as string[],
+      gender_preference: [],
+      body_types: [],
+      interests: [],
     }
   });
 
@@ -46,9 +72,13 @@ export default function EditProfilePage() {
             birthdate: profileData.birthdate || "",
             avatar_url: profileData.avatar_url || "",
             preferences: {
-              age_range: profileData.preferences?.age_range || { min: 18, max: 100 },
+              age_range: {
+                min: profileData.preferences?.age_range?.min ?? 18,
+                max: profileData.preferences?.age_range?.max ?? 100,
+              },
               gender_preference: (profileData.preferences?.gender_preference as ("male" | "female" | "other")[]) || [],
               body_types: profileData.preferences?.body_types || [],
+              interests: profileData.preferences?.interests || [],
             },
           });
         }
@@ -66,19 +96,28 @@ export default function EditProfilePage() {
     e.preventDefault();
     setError(null);
 
-    // FIX: Check if image is compulsory
     if (!formData.avatar_url || formData.avatar_url.trim() === "") {
       setError("A profile photo is required to save your profile.");
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
+    // Validate that we aren't sending empty strings to the backend
+    const finalData = {
+      ...formData,
+      preferences: {
+        ...formData.preferences,
+        age_range: {
+          min: formData.preferences.age_range.min === "" ? 18 : formData.preferences.age_range.min,
+          max: formData.preferences.age_range.max === "" ? 100 : formData.preferences.age_range.max,
+        }
+      }
+    };
+
     setSaving(true);
 
     try {
-      // TypeScript fix: We cast to 'any' here if your UserProfile type is still strict, 
-      // ensuring the preference object matches your database structure.
-      const result = await updateUserProfile(formData as any);
+      const result = await updateUserProfile(finalData as any);
       if (result.success) {
         router.push("/profile");
       } else {
@@ -123,6 +162,19 @@ export default function EditProfilePage() {
       return {
         ...prev,
         preferences: { ...prev.preferences, body_types: next }
+      };
+    });
+  };
+
+  const toggleInterest = (interest: string) => {
+    setFormData(prev => {
+      const current = prev.preferences.interests;
+      const next = current.includes(interest)
+        ? current.filter(i => i !== interest)
+        : [...current, interest];
+      return {
+        ...prev,
+        preferences: { ...prev.preferences, interests: next }
       };
     });
   };
@@ -187,7 +239,6 @@ export default function EditProfilePage() {
                   <div className="absolute -bottom-3 -right-3">
                     <PhotoUpload
                       onPhotoUploaded={(url) => {
-                        console.log("Image Uploaded Successfully. URL:", url);
                         setFormData((prev) => ({ ...prev, avatar_url: url }));
                         setError(null);
                       }}
@@ -202,11 +253,6 @@ export default function EditProfilePage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
                     A clear photo helps you connect with more people. 
                   </p>
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">JPG</span>
-                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">PNG</span>
-                    <span className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase">MAX 5MB</span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -297,12 +343,31 @@ export default function EditProfilePage() {
                   placeholder="What makes you, you?"
                   className="w-full px-4 py-3 rounded-2xl border-none bg-gray-100 dark:bg-gray-800 focus:ring-2 focus:ring-pink-500 transition-all dark:text-white resize-none"
                 />
-                <div className="flex justify-end">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                    {formData.bio.length} / 500 characters
-                  </span>
-                </div>
               </div>
+            </div>
+          </section>
+
+          {/* Section: Interests */}
+          <section className="bg-white dark:bg-gray-900 rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 dark:border-gray-800">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-pink-500 rounded-full"></span>
+              Interests & Hobbies
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {INTEREST_OPTIONS.map((interest) => (
+                <button
+                  key={interest}
+                  type="button"
+                  onClick={() => toggleInterest(interest)}
+                  className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                    formData.preferences.interests.includes(interest)
+                      ? "bg-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-none"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {interest}
+                </button>
+              ))}
             </div>
           </section>
 
@@ -314,7 +379,6 @@ export default function EditProfilePage() {
             </h2>
 
             <div className="space-y-8">
-              {/* Age Range */}
               <div className="space-y-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Preferred Age Range</label>
                 <div className="flex items-center gap-4">
@@ -325,13 +389,28 @@ export default function EditProfilePage() {
                       min="18"
                       max="100"
                       value={formData.preferences.age_range.min}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        preferences: { 
-                          ...prev.preferences, 
-                          age_range: { ...prev.preferences.age_range, min: parseInt(e.target.value) || 18 } 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          preferences: { 
+                            ...prev.preferences, 
+                            age_range: { ...prev.preferences.age_range, min: val === "" ? "" : parseInt(val) } 
+                          }
+                        }));
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (e.target.value === "" || isNaN(val) || val < 18) {
+                          setFormData(prev => ({
+                            ...prev,
+                            preferences: { 
+                              ...prev.preferences, 
+                              age_range: { ...prev.preferences.age_range, min: 18 } 
+                            }
+                          }));
                         }
-                      }))}
+                      }}
                       className="w-full px-4 py-2 rounded-xl border-none bg-gray-100 dark:bg-gray-800 font-bold dark:text-white"
                     />
                   </div>
@@ -343,20 +422,34 @@ export default function EditProfilePage() {
                       min="18"
                       max="100"
                       value={formData.preferences.age_range.max}
-                      onChange={(e) => setFormData(prev => ({
-                        ...prev,
-                        preferences: { 
-                          ...prev.preferences, 
-                          age_range: { ...prev.preferences.age_range, max: parseInt(e.target.value) || 100 } 
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setFormData(prev => ({
+                          ...prev,
+                          preferences: { 
+                            ...prev.preferences, 
+                            age_range: { ...prev.preferences.age_range, max: val === "" ? "" : parseInt(val) } 
+                          }
+                        }));
+                      }}
+                      onBlur={(e) => {
+                        const val = parseInt(e.target.value);
+                        if (e.target.value === "" || isNaN(val) || val > 100) {
+                          setFormData(prev => ({
+                            ...prev,
+                            preferences: { 
+                              ...prev.preferences, 
+                              age_range: { ...prev.preferences.age_range, max: 100 } 
+                            }
+                          }));
                         }
-                      }))}
+                      }}
                       className="w-full px-4 py-2 rounded-xl border-none bg-gray-100 dark:bg-gray-800 font-bold dark:text-white"
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Gender Preference */}
               <div className="space-y-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Interested in</label>
                 <div className="flex flex-wrap gap-3">
@@ -365,10 +458,10 @@ export default function EditProfilePage() {
                       key={g}
                       type="button"
                       onClick={() => toggleGenderPreference(g)}
-                      className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all transform active:scale-95 ${
+                      className={`px-6 py-2.5 rounded-2xl text-sm font-bold transition-all ${
                         formData.preferences.gender_preference.includes(g)
-                          ? "bg-pink-500 text-white shadow-lg shadow-pink-200 dark:shadow-none"
-                          : "bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700"
+                          ? "bg-pink-500 text-white shadow-lg"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-500"
                       }`}
                     >
                       {g.charAt(0).toUpperCase() + g.slice(1)}
@@ -377,7 +470,6 @@ export default function EditProfilePage() {
                 </div>
               </div>
 
-              {/* Body Type Preference */}
               <div className="space-y-4">
                 <label className="text-xs font-bold uppercase tracking-wider text-gray-400 ml-1">Preferred Body Types</label>
                 <div className="flex flex-wrap gap-2">
@@ -388,25 +480,20 @@ export default function EditProfilePage() {
                       onClick={() => toggleBodyPreference(type)}
                       className={`px-4 py-2 rounded-xl text-xs font-medium border-2 transition-all ${
                         formData.preferences.body_types.includes(type)
-                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white shadow-md"
-                          : "bg-transparent border-gray-100 dark:border-gray-800 text-gray-500 hover:border-gray-300"
+                          ? "bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-gray-900 dark:border-white"
+                          : "bg-transparent border-gray-100 dark:border-gray-800 text-gray-500"
                       }`}
                     >
                       {type}
                     </button>
                   ))}
                 </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest ml-1">Multiple selections allowed</p>
               </div>
             </div>
           </section>
 
-          {/* Sticky Mobile Error & Action Bar */}
           {error && (
-            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold animate-pulse">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
+            <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 rounded-2xl flex items-center gap-3 text-red-600 dark:text-red-400 text-sm font-bold">
               {error}
             </div>
           )}
@@ -422,17 +509,11 @@ export default function EditProfilePage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-full sm:flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-4 px-10 rounded-3xl shadow-xl shadow-rose-200 dark:shadow-none hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
+              className="w-full sm:flex-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold py-4 px-10 rounded-3xl shadow-xl hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed order-1 sm:order-2"
             >
-              {saving ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Saving...</span>
-                </div>
-              ) : "Save Profile Changes"}
+              {saving ? "Saving..." : "Save Profile Changes"}
             </button>
           </div>
-
         </form>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { calculateAge } from "@/lib/helpers/calculate-age";
 
-// Updated Interfaces
+// Updated Interfaces with Interests added
 export interface UserPreferences {
   age_range: {
     min: number;
@@ -13,6 +13,7 @@ export interface UserPreferences {
   };
   gender_preference: ("male" | "female" | "other")[];
   body_types?: string[];
+  interests?: string[]; // Added this line to fix the property error
 }
 
 export interface UserProfile {
@@ -214,7 +215,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="inline-flex items-center gap-3 bg-pink-50 dark:bg-pink-900/10 px-6 py-3 rounded-2xl border border-pink-100 dark:border-pink-900/20">
                       <span className="text-2xl font-black text-pink-600 dark:text-pink-400">
-                        {profile.preferences.age_range.min} — {profile.preferences.age_range.max}
+                        {profile.preferences?.age_range?.min ?? 18} — {profile.preferences?.age_range?.max ?? 99}
                       </span>
                       <span className="text-pink-400 text-xs font-bold uppercase tracking-tighter">years</span>
                     </div>
@@ -226,7 +227,7 @@ export default function ProfilePage() {
                         Interested In
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {profile.preferences.gender_preference.map((g) => (
+                        {(profile.preferences?.gender_preference ?? []).map((g) => (
                           <span key={g} className="px-4 py-2 bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-xl shadow-sm capitalize">
                             {g}
                           </span>
@@ -234,13 +235,13 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
-                    {profile.preferences.body_types && profile.preferences.body_types.length > 0 && (
+                    {profile.preferences?.interests && profile.preferences.interests.length > 0 && (
                       <div className="space-y-4">
-                        <h4 className="font-bold text-gray-900 dark:text-white">Body Preferences</h4>
+                        <h4 className="font-bold text-gray-900 dark:text-white">Interests</h4>
                         <div className="flex flex-wrap gap-2">
-                          {profile.preferences.body_types.map((type) => (
-                            <span key={type} className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-black rounded-xl">
-                              {type}
+                          {profile.preferences.interests.map((interest) => (
+                            <span key={interest} className="px-4 py-2 bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-xs font-black rounded-xl">
+                              {interest}
                             </span>
                           ))}
                         </div>

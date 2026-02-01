@@ -4,6 +4,30 @@ import { UserProfile } from "@/app/profile/page";
 import { createClient } from "../supabase/server";
 
 /**
+ * NEW: GET USER BY ID
+ * Fetches a specific user profile by their ID.
+ */
+export async function getUserById(userId: string): Promise<UserProfile | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", userId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching user by ID:", error.message);
+    return null;
+  }
+
+  return {
+    ...data,
+    email: "", // Masking email for privacy unless needed
+  } as UserProfile;
+}
+
+/**
  * 1. POTENTIAL MATCHES
  * Fetches users who haven't been liked yet but match current user preferences.
  */
@@ -52,32 +76,15 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("failed to fetch potential matches");
   }
 
-  const filteredMatches = potentialMatches
+  return potentialMatches
     .filter((match) => {
       if (!bodyTypePrefs || bodyTypePrefs.length === 0) return true;
       return bodyTypePrefs.includes(match.body_type);
     })
     .map((match) => ({
-      id: match.id,
-      full_name: match.full_name,
-      username: match.username,
+      ...match,
       email: "", 
-      gender: match.gender,
-      body_type: match.body_type,
-      birthdate: match.birthdate,
-      bio: match.bio,
-      avatar_url: match.avatar_url,
-      preferences: match.preferences,
-      location_lat: undefined,
-      location_lng: undefined,
-      last_active: match.last_active,
-      is_verified: match.is_verified,
-      is_online: match.is_online,
-      created_at: match.created_at,
-      updated_at: match.updated_at,
     }));
-
-  return filteredMatches;
 }
 
 /**
@@ -115,20 +122,12 @@ export async function likeUser(toUserId: string) {
   }
 
   if (existingLike) {
-    const { data: matchedUser, error: userError } = await supabase
-      .from("users")
-      .select("*")
-      .eq("id", toUserId)
-      .single();
-
-    if (userError) {
-      throw new Error("Failed to fetch matched user");
-    }
+    const matchedUser = await getUserById(toUserId);
 
     return {
       success: true,
       isMatch: true,
-      matchedUser: matchedUser as UserProfile,
+      matchedUser,
     };
   }
 
@@ -137,7 +136,6 @@ export async function likeUser(toUserId: string) {
 
 /**
  * 3. LIKES SENT TO ME (PENDING)
- * People who liked you, but you haven't liked back yet.
  */
 export async function getUsersWhoLikedMe(): Promise<UserProfile[]> {
   const supabase = await createClient();
@@ -173,7 +171,6 @@ export async function getUsersWhoLikedMe(): Promise<UserProfile[]> {
 
 /**
  * 4. LIKES SENT BY ME (PENDING)
- * People you liked, but they haven't liked you back yet.
  */
 export async function getUsersILiked(): Promise<UserProfile[]> {
   const supabase = await createClient();
@@ -183,7 +180,6 @@ export async function getUsersILiked(): Promise<UserProfile[]> {
 
   if (!user) throw new Error("Not authenticated.");
 
-  // Get people I liked
   const { data: myLikes, error } = await supabase
     .from("likes")
     .select("to_user_id")
@@ -192,18 +188,14 @@ export async function getUsersILiked(): Promise<UserProfile[]> {
   if (error) throw new Error("Failed to fetch your likes");
 
   const myLikedIds = myLikes?.map((l) => l.to_user_id) || [];
-
   if (myLikedIds.length === 0) return [];
 
-  // Get people who liked ME back
   const { data: likesToMe } = await supabase
     .from("likes")
     .select("from_user_id")
     .eq("to_user_id", user.id);
 
   const usersWhoLikedMeBackIds = likesToMe?.map((l) => l.from_user_id) || [];
-
-  // Filter out the ones who liked back (because they are matches)
   const pendingIds = myLikedIds.filter(id => !usersWhoLikedMeBackIds.includes(id));
 
   if (pendingIds.length === 0) return [];
@@ -214,14 +206,11 @@ export async function getUsersILiked(): Promise<UserProfile[]> {
 
 /**
  * 5. CONFIRMED MATCHES
- * Mutual likes that are now active conversations.
+ * Optimized to fetch all "other users" in one query.
  */
 export async function getUserMatches(): Promise<UserProfile[]> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Not authenticated.");
 
   const { data: matches, error } = await supabase
@@ -231,22 +220,24 @@ export async function getUserMatches(): Promise<UserProfile[]> {
     .eq("is_active", true);
 
   if (error) throw new Error("Failed to fetch matches");
+  if (!matches || matches.length === 0) return [];
 
-  const matchedUsers: UserProfile[] = [];
+  const otherUserIds = matches.map(m => m.user1_id === user.id ? m.user2_id : m.user1_id);
 
-  for (const match of matches || []) {
-    const otherUserId = match.user1_id === user.id ? match.user2_id : match.user1_id;
-    const { data: otherUser } = await supabase.from("users").select("*").eq("id", otherUserId).single();
+  const { data: profiles, error: profileError } = await supabase
+    .from("users")
+    .select("*")
+    .in("id", otherUserIds);
 
-    if (otherUser) {
-      matchedUsers.push({
-        ...otherUser,
-        id: match.id, // Using Match ID for chat routing
-        email: otherUser.email,
-        created_at: match.created_at,
-      });
-    }
-  }
+  if (profileError) throw new Error("Failed to fetch match profiles");
 
-  return matchedUsers;
+  return profiles.map(profile => {
+    const matchRecord = matches.find(m => m.user1_id === profile.id || m.user2_id === profile.id);
+    return {
+      ...profile,
+      id: matchRecord?.id, // Keep Match ID for routing
+      email: profile.email,
+      created_at: matchRecord?.created_at,
+    };
+  });
 }
