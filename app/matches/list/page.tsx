@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 export default function MatchesListPage() {
-  const [matches, setMatches] = useState<UserProfile[]>([]);
+  const [matches, setMatches] = useState<any[]>([]); // Using any for mapping
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -18,7 +18,15 @@ export default function MatchesListPage() {
     async function loadMatches() {
       try {
         const userMatches = await getUserMatches();
-        setMatches(userMatches);
+        
+        // This maps the response to ensure we always have the user's ID at the top level
+        const flattenedMatches = userMatches.map((m: any) => ({
+          ...m,
+          // If match.id is the Match ID, we look for the person's ID in common nested objects
+          displayId: m.user_id || m.profiles?.id || m.user?.id || m.id
+        }));
+
+        setMatches(flattenedMatches);
       } catch (error) {
         setError("Failed to load matches.");
       } finally {
@@ -42,7 +50,6 @@ export default function MatchesListPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
-      {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800">
         <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
           <div>
@@ -72,9 +79,6 @@ export default function MatchesListPage() {
               <span className="text-4xl">💬</span>
             </div>
             <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">No conversations yet</h2>
-            <p className="text-gray-500 dark:text-gray-400 mb-8 max-w-xs mx-auto text-sm leading-relaxed">
-              When you match with someone, they will appear here so you can start the magic.
-            </p>
             <Link
               href="/matches"
               className="inline-block bg-gradient-to-r from-pink-500 to-red-500 text-white font-bold py-4 px-10 rounded-2xl shadow-lg shadow-pink-500/25 active:scale-95 transition-transform"
@@ -84,75 +88,62 @@ export default function MatchesListPage() {
           </motion.div>
         ) : (
           <div className="space-y-1">
-            {matches.map((match, index) => {
-              /**
-               * FIX: Extracting the actual User ID.
-               * In 'Matches', the top-level 'id' is often the Match Relationship ID.
-               * We check common nested locations for the real Profile ID.
-               */
-              const actualUserId = (match as any).profiles?.id || (match as any).user?.id || match.id;
-
-              return (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  key={match.id}
+            {matches.map((match, index) => (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+                key={match.id}
+              >
+                <div 
+                  className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group"
+                  onClick={() => router.push(`/chat/${match.displayId}`)}
                 >
+                  {/* Avatar Container - Click goes to PROFILE */}
                   <div 
-                    className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group active:scale-[0.98]"
-                    onClick={() => router.push(`/chat/${actualUserId}`)}
+                    className="relative flex-shrink-0 z-20"
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      router.push(`/profile/${match.displayId}`);
+                    }}
                   >
-                    {/* Avatar Container - Click goes to PROFILE */}
-                    <div 
-                      className="relative flex-shrink-0 z-20"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Prevents navigating to chat
-                        if (actualUserId) {
-                          router.push(`/profile/${actualUserId}`);
-                        }
-                      }}
-                    >
-                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
-                        <Image
-                          src={match.avatar_url || "/default-avatar.png"}
-                          alt={match.full_name}
-                          width={56}
-                          height={56}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {/* Online Status Indicator */}
-                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
+                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
+                      <Image
+                        src={match.avatar_url || "/default-avatar.png"}
+                        alt={match.full_name || "User"}
+                        width={56}
+                        height={56}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
-
-                    {/* Name Info - Click goes to CHAT */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
-                          {match.full_name}
-                        </h3>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
-                          Match
-                        </span>
-                      </div>
-                      <p className="text-sm text-pink-500 font-medium">
-                        Tap to message
-                      </p>
-                    </div>
-
-                    {/* Chevron Icon */}
-                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 transition-all">
-                      <svg className="w-5 h-5 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
                   </div>
-                  {/* Thin subtle divider */}
-                  <div className="h-[1px] bg-gray-50 dark:bg-gray-900/50 mx-16" />
-                </motion.div>
-              );
-            })}
+
+                  {/* Name Info - Click goes to CHAT */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
+                        {match.full_name}
+                      </h3>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                        Match
+                      </span>
+                    </div>
+                    <p className="text-sm text-pink-500 font-medium">
+                      Tap to message
+                    </p>
+                  </div>
+
+                  {/* Chevron Icon */}
+                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 transition-all">
+                    <svg className="w-5 h-5 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+                <div className="h-[1px] bg-gray-50 dark:bg-gray-900/50 mx-16" />
+              </motion.div>
+            ))}
           </div>
         )}
       </div>
