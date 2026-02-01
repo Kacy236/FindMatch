@@ -102,7 +102,10 @@ export default function MatchesListPage() {
                   {/* Avatar Container - Click goes to PROFILE */}
                   <div 
                     className="relative flex-shrink-0 z-20"
-                    
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      router.push(`/profile/${match.displayId}`);
+                    }}
                   >
                     <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
                       <Image
