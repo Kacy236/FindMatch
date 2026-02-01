@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 export default function MatchesListPage() {
-  const [matches, setMatches] = useState<any[]>([]); // Using any for mapping
+  const [matches, setMatches] = useState<any[]>([]); // Using any to handle nested join data
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -19,14 +19,24 @@ export default function MatchesListPage() {
       try {
         const userMatches = await getUserMatches();
         
-        // This maps the response to ensure we always have the user's ID at the top level
-        const flattenedMatches = userMatches.map((m: any) => ({
-          ...m,
-          // If match.id is the Match ID, we look for the person's ID in common nested objects
-          displayId: m.user_id || m.profiles?.id || m.user?.id || m.id
-        }));
+        /**
+         * THE FIX:
+         * We map through the matches to find the actual User ID.
+         * If your getUserMatches join returns the profile inside a 'profiles' key,
+         * we extract that ID specifically.
+         */
+        const formattedMatches = userMatches.map((item: any) => {
+          // If the item itself has the full_name, it's a flat object.
+          // If it has a 'profiles' or 'user' object, the ID is inside there.
+          const realUserId = item.profiles?.id || item.user?.id || item.user_id || item.id;
+          
+          return {
+            ...item,
+            profileId: realUserId // Store the REAL user id separately for navigation
+          };
+        });
 
-        setMatches(flattenedMatches);
+        setMatches(formattedMatches);
       } catch (error) {
         setError("Failed to load matches.");
       } finally {
@@ -50,6 +60,7 @@ export default function MatchesListPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950">
+      {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800">
         <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
           <div>
@@ -97,14 +108,15 @@ export default function MatchesListPage() {
               >
                 <div 
                   className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group"
-                  onClick={() => router.push(`/chat/${match.displayId}`)}
+                  onClick={() => router.push(`/chat/${match.profileId}`)}
                 >
-                  {/* Avatar Container - Click goes to PROFILE */}
+                  {/* Avatar Container */}
                   <div 
                     className="relative flex-shrink-0 z-20"
                     onClick={(e) => {
                       e.stopPropagation(); 
-                      router.push(`/profile/${match.displayId}`);
+                      // We use profileId which we calculated in the useEffect
+                      router.push(`/profile/${match.profileId}`);
                     }}
                   >
                     <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
@@ -119,7 +131,7 @@ export default function MatchesListPage() {
                     <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
                   </div>
 
-                  {/* Name Info - Click goes to CHAT */}
+                  {/* Name Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
                       <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
