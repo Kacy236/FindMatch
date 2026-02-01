@@ -84,64 +84,75 @@ export default function MatchesListPage() {
           </motion.div>
         ) : (
           <div className="space-y-1">
-            {matches.map((match, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                key={match.id}
-              >
-                <div 
-                  className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group"
-                  onClick={() => router.push(`/chat/${match.id}`)}
+            {matches.map((match, index) => {
+              /**
+               * FIX: Extracting the actual User ID.
+               * In 'Matches', the top-level 'id' is often the Match Relationship ID.
+               * We check common nested locations for the real Profile ID.
+               */
+              const actualUserId = (match as any).profiles?.id || (match as any).user?.id || match.id;
+
+              return (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  key={match.id}
                 >
-                  {/* Avatar Container - Click goes to PROFILE */}
                   <div 
-                    className="relative flex-shrink-0 z-20"
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevents the parent onClick (chat) from firing
-                      router.push(`/profile/${match.id}`);
-                    }}
+                    className="flex items-center gap-4 p-4 rounded-[2rem] bg-transparent hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-all cursor-pointer group active:scale-[0.98]"
+                    onClick={() => router.push(`/chat/${actualUserId}`)}
                   >
-                    <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
-                      <Image
-                        src={match.avatar_url || "/default-avatar.png"}
-                        alt={match.full_name}
-                        width={56}
-                        height={56}
-                        className="w-full h-full object-cover"
-                      />
+                    {/* Avatar Container - Click goes to PROFILE */}
+                    <div 
+                      className="relative flex-shrink-0 z-20"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevents navigating to chat
+                        if (actualUserId) {
+                          router.push(`/profile/${actualUserId}`);
+                        }
+                      }}
+                    >
+                      <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white dark:border-gray-800 shadow-sm group-hover:border-pink-500 transition-all hover:scale-105 active:scale-95">
+                        <Image
+                          src={match.avatar_url || "/default-avatar.png"}
+                          alt={match.full_name}
+                          width={56}
+                          height={56}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {/* Online Status Indicator */}
+                      <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
                     </div>
-                    {/* Online Status Indicator */}
-                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-gray-950 rounded-full shadow-sm"></div>
-                  </div>
 
-                  {/* Name Info - Click goes to CHAT */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
-                        {match.full_name}
-                      </h3>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
-                        Match
-                      </span>
+                    {/* Name Info - Click goes to CHAT */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-[17px] font-bold text-gray-900 dark:text-white truncate">
+                          {match.full_name}
+                        </h3>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+                          Match
+                        </span>
+                      </div>
+                      <p className="text-sm text-pink-500 font-medium">
+                        Tap to message
+                      </p>
                     </div>
-                    <p className="text-sm text-pink-500 font-medium">
-                      Tap to message
-                    </p>
-                  </div>
 
-                  {/* Chevron Icon */}
-                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 transition-all">
-                    <svg className="w-5 h-5 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                    </svg>
+                    {/* Chevron Icon */}
+                    <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0 transition-all">
+                      <svg className="w-5 h-5 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </div>
-                </div>
-                {/* Thin subtle divider */}
-                <div className="h-[1px] bg-gray-50 dark:bg-gray-900/50 mx-16" />
-              </motion.div>
-            ))}
+                  {/* Thin subtle divider */}
+                  <div className="h-[1px] bg-gray-50 dark:bg-gray-900/50 mx-16" />
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>

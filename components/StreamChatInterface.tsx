@@ -338,9 +338,7 @@ export default function StreamChatInterface({
             <div className="absolute inset-0 border-4 border-pink-100 dark:border-pink-900/20 rounded-full"></div>
             <div className="absolute inset-0 border-4 border-pink-500 rounded-full border-t-transparent animate-spin"></div>
           </div>
-          <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">
-            Setting up your secure chat...
-          </p>
+          
         </div>
       </div>
     );
