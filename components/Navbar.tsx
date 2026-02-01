@@ -2,174 +2,121 @@
 
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
+import { useState } from "react";
 
 export default function Navbar() {
   const { signOut, user } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const pathname = usePathname();
-
-  // Handle scroll effect for glassmorphism
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
   const navLinks = [
-    { href: "/matches", label: "Discover", icon: "🔥" },
-    { href: "/matches/list", label: "Matches", icon: "💖" },
-    { href: "/chat", label: "Messages", icon: "💬" },
-    { href: "/profile", label: "Profile", icon: "👤" },
+    { name: "Discover", href: "/matches", color: "hover:text-pink-400" },
+    { name: "Matches", href: "/matches/list", color: "hover:text-blue-400" },
+    { name: "Messages", href: "/chat", color: "hover:text-green-400" },
+    { name: "Profile", href: "/profile", color: "hover:text-purple-400" },
   ];
 
   return (
-    <nav 
-      className={`fixed top-0 inset-x-0 z-[100] transition-all duration-300 px-4 py-3 ${
-        scrolled || isMenuOpen
-          ? "bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl shadow-lg border-b border-gray-200/50 dark:border-gray-800/50" 
-          : "bg-transparent"
-      }`}
-    >
-      <div className="container mx-auto max-w-7xl">
-        <div className="flex items-center justify-between h-14">
+    <nav className="sticky top-0 z-[100] w-full bg-slate-900/80 backdrop-blur-md border-b border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           
-          {/* Logo */}
-          <Link href="/" className="group flex items-center space-x-2">
-            <div className="w-9 h-9 bg-gradient-to-br from-pink-500 to-red-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/20 group-hover:rotate-12 transition-transform">
-              <span className="text-white text-xl font-black">S</span>
-            </div>
-            <span className="text-xl font-black tracking-tighter bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
-              StreamMatch
-            </span>
-          </Link>
+          {/* Logo Section */}
+          <div className="flex-shrink-0 flex items-center">
+            <Link href="/" className="group flex items-center space-x-2">
+              <div className="w-8 h-8 bg-gradient-to-tr from-pink-500 to-red-500 rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                <span className="text-white font-black text-xs">FM</span>
+              </div>
+              <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                FindMatch
+              </span>
+            </Link>
+          </div>
 
           {/* Desktop Navigation */}
-          {user && (
-            <div className="hidden md:flex items-center bg-gray-100/50 dark:bg-gray-900/50 p-1 rounded-2xl border border-gray-200/50 dark:border-gray-800/50">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`relative px-6 py-2 text-sm font-bold transition-all duration-300 rounded-xl ${
-                      isActive 
-                        ? "text-pink-600 dark:text-pink-400" 
-                        : "text-gray-500 hover:text-gray-900 dark:hover:text-white"
-                    }`}
-                  >
-                    {isActive && (
-                      <motion.div 
-                        layoutId="navTab"
-                        className="absolute inset-0 bg-white dark:bg-gray-800 shadow-sm rounded-xl z-0"
-                      />
-                    )}
-                    <span className="relative z-10">{link.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          <div className="hidden md:flex items-center space-x-1">
+            {user && navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`px-4 py-2 rounded-full text-sm font-medium text-gray-400 transition-all duration-200 ${link.color} hover:bg-white/5`}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-3">
             {user ? (
               <>
-                <div className="hidden md:flex items-center space-x-3">
-                  <button
-                    onClick={() => signOut()}
-                    className="p-2.5 text-gray-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
-                    title="Sign Out"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                  </button>
-                  <Link href="/profile" className="relative w-10 h-10 rounded-full border-2 border-pink-500/20 overflow-hidden hover:border-pink-500 transition-colors">
-                    <Image 
-                      src={user?.user_metadata?.avatar_url || "/default-avatar.png"} 
-                      alt="Profile"
-                      fill
-                      className="object-cover"
-                    />
-                  </Link>
-                </div>
-
+                <button
+                  onClick={signOut}
+                  className="hidden md:flex items-center px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white transition-colors"
+                >
+                  Sign Out
+                </button>
+                
                 {/* Mobile Menu Toggle */}
                 <button
-                  onClick={toggleMenu}
-                  className="md:hidden w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-300"
+                  onClick={() => setIsMenuOpen(!isMenuOpen)}
+                  className="md:hidden relative z-50 p-2 text-gray-400 hover:text-white focus:outline-none"
+                  aria-label="Toggle menu"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    {isMenuOpen ? (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    ) : (
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
-                    )}
-                  </svg>
+                  <div className="w-6 h-6 flex flex-col justify-center items-center">
+                    <span className={`block w-5 h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? 'rotate-45 translate-y-0.5' : '-translate-y-1'}`}></span>
+                    <span className={`block w-5 h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
+                    <span className={`block w-5 h-0.5 bg-current transition-all duration-300 ${isMenuOpen ? '-rotate-45 -translate-y-0.5' : 'translate-y-1'}`}></span>
+                  </div>
                 </button>
               </>
             ) : (
               <Link
                 href="/auth"
-                className="px-6 py-2.5 bg-gradient-to-r from-pink-500 to-red-500 text-white text-sm font-black rounded-xl shadow-lg shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all"
+                className="px-5 py-2.5 bg-gradient-to-r from-pink-500 to-red-500 text-white text-sm font-bold rounded-full hover:shadow-[0_0_20px_rgba(236,72,153,0.3)] transition-all duration-300 active:scale-95"
               >
-                Join Now
+                Sign In
               </Link>
             )}
           </div>
         </div>
+      </div>
 
-        {/* Mobile Navigation Menu */}
-        <AnimatePresence>
-          {user && isMenuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="md:hidden overflow-hidden"
-            >
-              <div className="flex flex-col space-y-2 pt-4 pb-6">
-                {navLinks.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={`flex items-center space-x-4 p-4 rounded-2xl font-bold transition-all ${
-                      pathname === link.href 
-                        ? "bg-pink-50 dark:bg-pink-900/20 text-pink-600 dark:text-pink-400" 
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900"
-                    }`}
-                  >
-                    <span className="text-xl">{link.icon}</span>
-                    <span>{link.label}</span>
-                  </Link>
-                ))}
-                <div className="pt-4 mt-2 border-t border-gray-100 dark:border-gray-800">
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      signOut();
-                    }}
-                    className="w-full flex items-center justify-center space-x-2 p-4 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 font-black rounded-2xl"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                    </svg>
-                    <span>Log Out</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+      {/* Full-screen Mobile Menu Overlay */}
+      <div 
+        className={`fixed inset-0 z-40 md:hidden transition-all duration-300 ${
+          isMenuOpen ? "opacity-100 translate-x-0" : "opacity-0 translate-x-full"
+        }`}
+      >
+        {/* Backdrop */}
+        <div className="absolute inset-0 bg-slate-950/98 backdrop-blur-2xl" />
+        
+        {/* Menu Content */}
+        <div className="relative h-full flex flex-col justify-center items-center p-8">
+          <div className="w-full max-w-xs space-y-8 text-center">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setIsMenuOpen(false)}
+                className="block text-4xl font-bold text-white active:text-pink-500 transition-colors"
+              >
+                {link.name}
+              </Link>
+            ))}
+            
+            <div className="pt-8 mt-8 border-t border-white/10">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  signOut();
+                }}
+                className="w-full py-4 rounded-2xl bg-red-500/10 text-red-500 text-xl font-bold active:bg-red-500 active:text-white transition-all"
+              >
+                Log Out
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </nav>
   );
