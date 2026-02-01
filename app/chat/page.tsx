@@ -6,11 +6,9 @@ import { UserProfile } from "../profile/page";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 interface ChatData {
-  id: string; // The Match/Conversation ID
-  displayId: string; // The target User's ID (for routing)
+  id: string; 
   user: UserProfile;
   lastMessage?: string;
   lastMessageTime: string;
@@ -20,14 +18,27 @@ interface ChatData {
 export default function ChatPage() {
   const [chats, setChats] = useState<ChatData[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
-  // --- LOGIC FUNCTIONS ---
-
-  function handleProfileClick(userId: string) {
-    if (!userId) return;
-    router.push(`/profile/${userId}`);
-  }
+  useEffect(() => {
+    async function loadMatches() {
+      try {
+        const userMatches = await getUserMatches();
+        const chatData: ChatData[] = userMatches.map((match) => ({
+          id: match.id, 
+          user: match,
+          lastMessage: "Start your conversation!",
+          lastMessageTime: match.created_at,
+          unreadCount: 0,
+        }));
+        setChats(chatData);
+      } catch (error) {
+        console.error("Failed to load chats:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadMatches();
+  }, []);
 
   function formatTime(timestamp: string) {
     const date = new Date(timestamp);
@@ -40,40 +51,6 @@ export default function ChatPage() {
     }
     return diffInHours < 48 ? "Yesterday" : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
-
-  // --- EFFECTS ---
-
-  useEffect(() => {
-    async function loadMatches() {
-      try {
-        const userMatches = await getUserMatches();
-        const chatData: ChatData[] = userMatches.map((match: any) => {
-          // Resolve the actual human user ID for routing
-          const actualUserId = match.profiles?.id || match.user?.id || match.user_id || match.id;
-          
-          return {
-            id: match.id, 
-            displayId: actualUserId,
-            user: {
-              ...match,
-              // Fallbacks for nested data
-              full_name: match.full_name || match.profiles?.full_name || "User",
-              avatar_url: match.avatar_url || match.profiles?.avatar_url || "/default-avatar.png"
-            },
-            lastMessage: "Start your conversation!",
-            lastMessageTime: match.created_at || new Date().toISOString(),
-            unreadCount: 0,
-          };
-        });
-        setChats(chatData);
-      } catch (error) {
-        console.error("Failed to load chats:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadMatches();
-  }, []);
 
   if (loading) {
     return (
@@ -88,6 +65,7 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 pb-20">
+      {/* Mobile-Optimized Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-50 dark:border-gray-900">
         <div className="max-w-2xl mx-auto px-6 py-5 flex items-center justify-between">
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">Messages</h1>
@@ -115,32 +93,21 @@ export default function ChatPage() {
           </div>
         ) : (
           <div className="mt-4">
-            {/* New Matches Scroller */}
+            {/* New Matches Scroller (Top Section) */}
             <section className="px-6 mb-8">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-4">New Matches</h3>
               <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                 {chats.map((chat) => (
-                  <div key={`new-${chat.id}`} className="flex-shrink-0 flex flex-col items-center gap-2 cursor-pointer">
-                    <div 
-                      className="w-16 h-16 rounded-full p-[2px] border-2 border-pink-500"
-                      onClick={() => handleProfileClick(chat.displayId)}
-                    >
-                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-gray-950 relative">
-                        <Image 
-                          src={chat.user.avatar_url || "/default-avatar.png"} 
-                          alt={chat.user.full_name} 
-                          fill
-                          className="object-cover" 
-                        />
+                  <Link key={`new-${chat.id}`} href={`/chat/${chat.id}`} className="flex-shrink-0 flex flex-col items-center gap-2">
+                    <div className="w-16 h-16 rounded-full p-[2px] border-2 border-pink-500">
+                      <div className="w-full h-full rounded-full overflow-hidden border-2 border-white dark:border-gray-950">
+                        <img src={chat.user.avatar_url || "/default-avatar.png"} alt="" className="w-full h-full object-cover" />
                       </div>
                     </div>
-                    <span 
-                      className="text-[11px] font-bold text-gray-700 dark:text-gray-300 w-16 truncate text-center"
-                      onClick={() => router.push(`/chat/${chat.displayId}`)}
-                    >
+                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-300 w-16 truncate text-center">
                       {chat.user.full_name.split(' ')[0]}
                     </span>
-                  </div>
+                  </Link>
                 ))}
               </div>
             </section>
@@ -156,23 +123,13 @@ export default function ChatPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
                   >
-                    <div 
-                      onClick={() => router.push(`/chat/${chat.displayId}`)}
-                      className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group cursor-pointer"
-                    >
+                    <Link href={`/chat/${chat.id}`} className="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors group">
                       <div className="relative flex-shrink-0">
-                        <div 
-                          className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm relative"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleProfileClick(chat.displayId);
-                          }}
-                        >
-                          <Image 
+                        <div className="w-14 h-14 rounded-2xl overflow-hidden shadow-sm">
+                          <img 
                             src={chat.user.avatar_url || "/default-avatar.png"} 
                             alt={chat.user.full_name} 
-                            fill
-                            className="object-cover transition-transform group-hover:scale-105" 
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105" 
                           />
                         </div>
                         {chat.unreadCount > 0 && (
@@ -195,7 +152,7 @@ export default function ChatPage() {
                           {chat.lastMessage}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                   </motion.div>
                 ))}
               </div>
