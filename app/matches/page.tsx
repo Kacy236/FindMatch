@@ -135,16 +135,16 @@ export default function MatchesPage() {
           <motion.div 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="text-center max-w-sm w-full p-10 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800"
+            className="text-center max-w-sm w-full p-8 bg-white dark:bg-gray-900 rounded-[2.5rem] shadow-xl border border-gray-100 dark:border-gray-800"
           >
-            <div className="w-20 h-20 bg-pink-50 dark:bg-pink-900/20 rounded-full flex items-center justify-center mx-auto mb-6">
-              <span className="text-4xl">✨</span>
+            <div className="w-16 h-16 bg-pink-50 dark:bg-pink-900/20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-3xl">✨</span>
             </div>
-            <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-3">All caught up!</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">No more new profiles nearby.</p>
+            <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">All caught up!</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-6">No more new profiles nearby.</p>
             <button
               onClick={() => setViewMode("whoLikedMe")}
-              className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-4 rounded-2xl font-bold shadow-lg shadow-pink-500/20"
+              className="w-full bg-gradient-to-r from-pink-500 to-red-500 text-white py-3 rounded-2xl font-bold shadow-lg shadow-pink-500/20 text-sm"
             >
               See Who Liked You
             </button>
@@ -155,8 +155,9 @@ export default function MatchesPage() {
 
     const currentMatch = potentialMatches[currentIndex];
     return (
-      <div className="flex-1 flex flex-col justify-between overflow-hidden pb-6">
-        <div className="flex-1 relative w-full max-w-md mx-auto px-4 py-2">
+      <div className="flex-1 flex flex-col justify-center overflow-hidden">
+        {/* Strictly controlled card height */}
+        <div className="relative w-full max-w-md mx-auto px-4 h-[50vh] sm:h-[60vh]">
           <AnimatePresence mode="popLayout">
             <MatchCard 
               key={currentMatch.id} 
@@ -166,7 +167,8 @@ export default function MatchesPage() {
             />
           </AnimatePresence>
         </div>
-        <div className="w-full max-w-sm mx-auto px-6 mt-2">
+        {/* Buttons container pulled closer */}
+        <div className="w-full max-w-sm mx-auto px-6 py-4">
           <MatchButtons onLike={handleLike} onPass={handlePass} />
         </div>
       </div>
@@ -235,21 +237,21 @@ export default function MatchesPage() {
     <div className="fixed inset-0 h-screen w-screen bg-[#FDFCFD] dark:bg-gray-950 flex flex-col overflow-hidden">
       <div className="flex-1 flex flex-col container mx-auto max-w-5xl overflow-hidden">
         
-        {/* HEADER */}
-        <header className="px-4 pt-6 pb-4 flex-shrink-0">
-          <div className="flex items-center justify-between mb-6">
-            <button onClick={() => router.back()} className="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
+        {/* HEADER - Tighter spacing */}
+        <header className="px-4 pt-4 pb-2 flex-shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={() => router.back()} className="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-2xl active:scale-90 transition-transform">
               <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <h1 className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">
+            <h1 className="text-xl font-black tracking-tighter text-gray-900 dark:text-white">
               {viewMode === "discover" ? "Discover" : viewMode === "whoLikedMe" ? "Interested" : "Sent"}
             </h1>
-            <div className="w-11" />
+            <div className="w-10" />
           </div>
 
-          <div className="flex bg-gray-100 dark:bg-gray-900 p-1.5 rounded-[1.25rem] max-w-sm mx-auto shadow-inner">
+          <div className="flex bg-gray-100 dark:bg-gray-900 p-1 rounded-[1.25rem] max-w-sm mx-auto shadow-inner">
             {[
               { id: "discover", label: "Discover" },
               { id: "whoLikedMe", label: "Likes You" },
@@ -258,9 +260,9 @@ export default function MatchesPage() {
               <button 
                 key={tab.id}
                 onClick={() => setViewMode(tab.id as ViewMode)}
-                className={`flex-1 py-2.5 text-xs font-bold rounded-2xl transition-all duration-300 ${
+                className={`flex-1 py-2 text-[10px] font-bold rounded-2xl transition-all duration-300 ${
                   viewMode === tab.id 
-                    ? "bg-white dark:bg-gray-800 shadow-md text-pink-600 dark:text-pink-400" 
+                    ? "bg-white dark:bg-gray-800 shadow-sm text-pink-600 dark:text-pink-400" 
                     : "text-gray-400"
                 }`}
               >
@@ -274,8 +276,8 @@ export default function MatchesPage() {
         <main className="flex-1 flex flex-col overflow-hidden">
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="h-12 w-12 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
-              <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
+              <div className="h-10 w-10 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
+              <p className="mt-3 text-[9px] font-bold text-gray-400 uppercase tracking-widest">Searching...</p>
             </div>
           ) : (
             <div className="flex-1 flex flex-col overflow-hidden">
