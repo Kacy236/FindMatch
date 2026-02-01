@@ -59,7 +59,7 @@ export default function ChatConversationPage() {
         >
           <div className="h-10 w-10 rounded-full border-t-2 border-pink-500 animate-spin" />
         </motion.div>
-        <p className="text-xs font-black uppercase tracking-widest text-gray-400">Securing Connection</p>
+        
       </div>
     );
   }
