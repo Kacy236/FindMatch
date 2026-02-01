@@ -49,7 +49,7 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto aspect-[3/4] perspective-1000 touch-none">
+    <div className="relative w-full max-w-md mx-auto aspect-[3/4] perspective-1000 touch-pan-y">
       <motion.div
         style={{ x, rotate, opacity }}
         drag="x"

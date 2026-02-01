@@ -31,7 +31,6 @@ export default function MatchesPage() {
 
   // --- LOGIC FUNCTIONS ---
 
-  // Navigates to the individual user's profile page
   function handleProfileClick(userId: string) {
     router.push(`/profile/${userId}`);
   }
@@ -154,7 +153,7 @@ export default function MatchesPage() {
 
     const currentMatch = potentialMatches[currentIndex];
     return (
-      <div className="flex flex-col items-center justify-center space-y-6">
+      <div className="flex flex-col items-center justify-center space-y-6 pb-20">
         <div className="w-full max-w-md relative h-[60vh] sm:h-[70vh]">
           <AnimatePresence mode="popLayout">
             <MatchCard 
@@ -182,17 +181,17 @@ export default function MatchesPage() {
     }
 
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2 pb-10">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 px-2 pb-24">
         {secondaryProfiles.map((profile) => (
           <motion.div 
             layout
             key={profile.id} 
-            className="group relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:ring-2 hover:ring-pink-500 transition-all cursor-pointer"
+            className="group relative bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-sm border border-gray-100 dark:border-gray-700 hover:ring-2 hover:ring-pink-500 transition-all"
           >
-            {/* Clickable Area for Profile */}
+            {/* Clickable Area restricted ONLY to the image container */}
             <div 
               onClick={() => handleProfileClick(profile.id)}
-              className="relative aspect-[3/4] w-full overflow-hidden"
+              className="relative aspect-[3/4] w-full overflow-hidden cursor-pointer active:opacity-90"
             >
               <Image 
                 src={profile.avatar_url || "/default-avatar.png"} 
@@ -210,7 +209,7 @@ export default function MatchesPage() {
               {viewMode === "whoLikedMe" ? (
                 <button 
                   onClick={(e) => {
-                    e.stopPropagation(); // Prevents clicking the profile when clicking the button
+                    e.stopPropagation();
                     handleLikeBack(profile.id);
                   }}
                   className="w-full bg-pink-500 text-white text-xs py-2.5 rounded-xl font-bold hover:bg-pink-600 transition-colors"
@@ -230,7 +229,7 @@ export default function MatchesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#FDFCFD] dark:bg-gray-950 transition-colors">
+    <div className="min-h-screen bg-[#FDFCFD] dark:bg-gray-950 transition-colors overflow-y-auto overflow-x-hidden">
       <div className="container mx-auto max-w-5xl px-4 py-6 md:py-10">
         
         {/* HEADER */}
@@ -269,7 +268,7 @@ export default function MatchesPage() {
         </header>
 
         {/* MAIN CONTENT */}
-        <main>
+        <main className="relative z-10">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-32">
               <div className="h-16 w-16 rounded-full border-4 border-pink-500 border-t-transparent animate-spin"></div>
@@ -282,7 +281,6 @@ export default function MatchesPage() {
           )}
         </main>
 
-        {/* MATCH POPUP */}
         <AnimatePresence>
           {showMatchNotification && matchedUser && (
             <MatchNotification
