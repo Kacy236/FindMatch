@@ -1,3 +1,5 @@
+"use client";
+
 interface MatchButtonsProps {
   onLike: () => void;
   onPass: () => void;
@@ -5,14 +7,15 @@ interface MatchButtonsProps {
 
 export default function MatchButtons({ onLike, onPass }: MatchButtonsProps) {
   return (
-    <div className="flex items-center justify-center gap-8">
+    <div className="flex items-center justify-center gap-6 md:gap-8">
+      {/* Pass Button */}
       <button
         onClick={onPass}
-        className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 hover:border-red-500 dark:hover:border-red-500"
+        className="w-14 h-14 md:w-16 md:h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl active:scale-90 transition-all duration-200 flex items-center justify-center border-2 border-gray-100 dark:border-gray-700 hover:border-red-500 dark:hover:border-red-500 group"
         aria-label="Pass"
       >
         <svg
-          className="w-8 h-8 text-red-500"
+          className="w-7 h-7 md:w-8 md:h-8 text-gray-400 group-hover:text-red-500 transition-colors"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -24,13 +27,14 @@ export default function MatchButtons({ onLike, onPass }: MatchButtonsProps) {
         </svg>
       </button>
 
+      {/* Like Button */}
       <button
         onClick={onLike}
-        className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center border-2 border-gray-300 dark:border-gray-600 hover:border-green-500 dark:hover:border-green-500"
+        className="w-14 h-14 md:w-16 md:h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg hover:shadow-xl active:scale-90 transition-all duration-200 flex items-center justify-center border-2 border-gray-100 dark:border-gray-700 hover:border-green-500 dark:hover:border-green-500 group"
         aria-label="Like"
       >
         <svg
-          className="w-8 h-8 text-green-500"
+          className="w-7 h-7 md:w-8 md:h-8 text-gray-400 group-hover:text-green-500 transition-colors"
           fill="currentColor"
           viewBox="0 0 20 20"
         >

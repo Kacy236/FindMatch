@@ -49,7 +49,7 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
   };
 
   return (
-    <div className="relative w-full max-w-md mx-auto aspect-[3/4] perspective-1000 touch-pan-y">
+    <div className="relative w-full max-w-md mx-auto h-full max-h-[55vh] sm:max-h-[65vh] perspective-1000 touch-pan-y">
       <motion.div
         style={{ x, rotate, opacity }}
         drag="x"
@@ -103,36 +103,36 @@ export default function MatchCard({ user, onSwipe, onClick }: MatchCardProps) {
           <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/40 to-transparent z-20" />
 
           {/* Content Area */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 z-30">
-            <div className="space-y-3">
+          <div className="absolute bottom-0 left-0 right-0 p-6 z-30">
+            <div className="space-y-2">
               <div className="flex items-baseline gap-2">
-                <h2 className="text-3xl font-black text-white tracking-tight">
+                <h2 className="text-2xl font-black text-white tracking-tight">
                   {user.full_name}, {calculateAge(user.birthdate)}
                 </h2>
                 {user.is_verified && (
-                  <svg className="w-6 h-6 text-pink-500 fill-current" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 text-pink-500 fill-current" viewBox="0 0 20 20">
                     <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293l-4 4a1 1 0 01-1.414 0l-2-2a1 1 0 111.414-1.414L9 10.586l3.293-3.293a1 1 0 111.414 1.414z" />
                   </svg>
                 )}
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-[11px] font-bold text-white uppercase tracking-wider">
+                <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-[9px] font-bold text-white uppercase tracking-wider">
                   {user.gender}
                 </span>
                 {user.body_type && (
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-[11px] font-bold text-white uppercase tracking-wider">
+                  <span className="px-2.5 py-1 bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-[9px] font-bold text-white uppercase tracking-wider">
                     {user.body_type}
                   </span>
                 )}
               </div>
 
-              <p className="text-base text-gray-200 line-clamp-2 font-medium opacity-90 leading-snug">
+              <p className="text-sm text-gray-200 line-clamp-2 font-medium opacity-90 leading-tight">
                 {user.bio || "Looking for someone special..."}
               </p>
               
               {/* Click Visual Hint */}
-              <div className="pt-2 text-[10px] text-pink-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="pt-1 text-[9px] text-pink-400 font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                 Tap to see full profile
               </div>
             </div>
