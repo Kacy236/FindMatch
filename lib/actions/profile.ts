@@ -2,6 +2,7 @@
 
 import { UserProfile } from "@/app/profile/page";
 import { createClient } from "../supabase/server";
+import { revalidatePath } from "next/cache";
 
 /**
  * Fetches the current user's profile from the 'users' table.
@@ -52,10 +53,10 @@ export async function updateUserProfile(profileData: Partial<UserProfile>) {
       username: profileData.username,
       bio: profileData.bio,
       gender: profileData.gender,
-      body_type: profileData.body_type, // Added to match the new schema
+      body_type: profileData.body_type,
       birthdate: profileData.birthdate,
       avatar_url: profileData.avatar_url,
-      preferences: profileData.preferences, // Saves age range and preferred body types
+      preferences: profileData.preferences,
       updated_at: new Date().toISOString(),
     })
     .eq("id", user.id);
@@ -65,11 +66,13 @@ export async function updateUserProfile(profileData: Partial<UserProfile>) {
     return { success: false, error: error.message };
   }
 
+  // Refresh the profile page data
+  revalidatePath("/profile");
   return { success: true };
 }
 
 /**
- * Handles profile photo uploads to Supabase Storage.
+ * Handles profile photo uploads to the 'avatars' bucket.
  */
 export async function uploadProfilePhoto(file: File) {
   const supabase = await createClient();
@@ -83,22 +86,43 @@ export async function uploadProfilePhoto(file: File) {
   }
 
   const fileExt = file.name.split(".").pop();
-  const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+  // We use user.id in the path to help with RLS organization
+  const fileName = `${user.id}/${Date.now()}.${fileExt}`;
 
-  const { error } = await supabase.storage
-    .from("profile-photos")
+  // 1. Upload to the bucket named 'avatars'
+  const { error: uploadError } = await supabase.storage
+    .from("avatars")
     .upload(fileName, file, {
       cacheControl: "3600",
-      upsert: false,
+      upsert: true,
     });
 
-  if (error) {
-    return { success: false, error: error.message };
+  if (uploadError) {
+    console.error("Storage Upload Error:", uploadError);
+    return { success: false, error: uploadError.message };
   }
 
+  // 2. Get the public URL
   const {
     data: { publicUrl },
-  } = supabase.storage.from("profile-photos").getPublicUrl(fileName);
+  } = supabase.storage.from("avatars").getPublicUrl(fileName);
+
+  // 3. Update the avatar_url in the 'users' table immediately
+  const { error: updateError } = await supabase
+    .from("users")
+    .update({ 
+      avatar_url: publicUrl,
+      updated_at: new Date().toISOString() 
+    })
+    .eq("id", user.id);
+
+  if (updateError) {
+    console.error("Database Update Error after upload:", updateError);
+    return { success: false, error: "Photo uploaded but failed to update profile link." };
+  }
+
+  // 4. Revalidate cache so the new image appears on the profile page
+  revalidatePath("/profile");
   
   return { success: true, url: publicUrl };
 }
