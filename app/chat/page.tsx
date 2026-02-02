@@ -5,6 +5,17 @@ import { useEffect, useState } from "react";
 import { UserProfile } from "../profile/page";
 import Link from "next/link";
 
+// Extending the interface to include match-specific data from your database
+interface Match extends UserProfile {
+  id: string;
+  created_at: string;
+  last_message?: {
+    content: string;
+    created_at: string;
+  };
+  unread_count?: number;
+}
+
 interface ChatData {
   id: string;
   user: UserProfile;
@@ -20,16 +31,26 @@ export default function ChatPage() {
   useEffect(() => {
     async function loadMatches() {
       try {
-        const userMatches = await getUserMatches();
+        const userMatches = await getUserMatches() as Match[];
         const chatData: ChatData[] = userMatches.map((match) => ({
           id: match.id,
-          user: match,
-          lastMessage: "Start your conversation!",
-          lastMessageTime: match.created_at,
-          unreadCount: 0,
+          user: {
+            id: match.id,
+            full_name: match.full_name,
+            avatar_url: match.avatar_url,
+          } as UserProfile,
+          // Display actual last message content if it exists
+          lastMessage: match.last_message?.content || "Start your conversation!",
+          lastMessageTime: match.last_message?.created_at || match.created_at,
+          unreadCount: match.unread_count || 0,
         }));
-        setChats(chatData);
-        console.log(userMatches);
+
+        // Sort by time so the newest conversations appear first
+        const sortedChats = chatData.sort((a, b) => 
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+        );
+
+        setChats(sortedChats);
       } catch (error) {
         console.error(error);
       } finally {
@@ -39,25 +60,6 @@ export default function ChatPage() {
 
     loadMatches();
   }, []);
-
-  function formatTime(timestamp: string) {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
-
-    if (diffInHours < 1) {
-      return "Just now";
-    } else if (diffInHours < 24) {
-      return date.toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } else if (diffInHours < 48) {
-      return "Yesterday";
-    } else {
-      return date.toLocaleDateString();
-    }
-  }
 
   if (loading) {
     return (
@@ -130,9 +132,6 @@ export default function ChatPage() {
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
                           {chat.user.full_name}
                         </h3>
-                        <span className="text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
-                          {formatTime(chat.lastMessageTime)}
-                        </span>
                       </div>
 
                       <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
