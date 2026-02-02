@@ -48,7 +48,7 @@ export default function VideoCall({
         }
 
         videoClient = new StreamVideoClient({
-          apiKey: response.apiKey, 
+          apiKey: response.apiKey,
           user: {
             id: response.userId,
             name: response.userName || "User",
@@ -94,20 +94,20 @@ export default function VideoCall({
 
   return (
     <AnimatePresence>
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-[1000] bg-black flex flex-col items-center justify-center overflow-hidden touch-none"
       >
         {loading && (
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="text-center z-10 px-6"
           >
             <div className="relative mb-8 flex justify-center">
-              <motion.div 
+              <motion.div
                 animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0.2, 0.5] }}
                 transition={{ repeat: Infinity, duration: 2 }}
                 className="absolute h-24 w-24 bg-pink-500 rounded-full blur-xl"
@@ -126,7 +126,7 @@ export default function VideoCall({
         )}
 
         {error && (
-          <motion.div 
+          <motion.div
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className="text-center w-[90%] max-w-sm mx-auto p-8 md:p-10 bg-gray-900/80 backdrop-blur-2xl rounded-[2.5rem] md:rounded-[3rem] border border-white/10 shadow-2xl z-10"
@@ -146,7 +146,7 @@ export default function VideoCall({
         )}
 
         {!loading && !error && client && call && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="w-full h-full flex flex-col"
@@ -155,7 +155,7 @@ export default function VideoCall({
               <StreamCall call={call}>
                 <StreamTheme className="str-video__theme--dark custom-video-theme">
                   <div className="relative w-full h-full flex flex-col">
-                    {/* Top Overlay UI - Adjusted for Mobile Notches */}
+                    {/* Top Overlay UI */}
                     <div className="absolute top-4 md:top-8 inset-x-0 px-4 md:px-6 flex justify-center items-center pointer-events-none z-50 pt-[env(safe-area-inset-top)]">
                       <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 md:px-4 md:py-2 rounded-full border border-white/10 flex items-center gap-2">
                         <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-500 rounded-full animate-pulse" />
@@ -168,10 +168,10 @@ export default function VideoCall({
                       <SpeakerLayout participantsBarPosition="bottom" />
                     </div>
 
-                    {/* Custom Styled Controls Wrapper - Fixed at bottom for Mobile */}
-                    <div className="safe-bottom pb-[env(safe-area-inset-bottom)] bg-gradient-to-t from-black via-black/80 to-transparent">
-                      <div className="h-24 md:h-32 flex items-center justify-center">
-                        <div className="scale-90 md:scale-125">
+                    {/* IMPROVED MOBILE CONTROLS */}
+                    <div className="safe-bottom pb-[env(safe-area-inset-bottom)] px-4 mb-6 md:mb-10">
+                      <div className="mx-auto max-w-sm bg-white/5 backdrop-blur-3xl rounded-[2.5rem] p-4 md:p-6 border border-white/10 shadow-2xl">
+                        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-8">
                           <CallControls onLeave={onCallEnd} />
                         </div>
                       </div>
@@ -183,66 +183,80 @@ export default function VideoCall({
           </motion.div>
         )}
       </motion.div>
-      
-      {/* Global Style Override for Stream Components */}
+
       <style jsx global>{`
         .custom-video-theme {
-          --str-video__primary-color: #ec4899; /* pink-500 */
+          --str-video__primary-color: #ec4899;
           --str-video__background-color: #000000;
         }
 
-        /* Mobile Optimization for Participant Views */
-        .str-video__speaker-layout {
-          height: 100% !important;
-          padding: 0 !important;
-        }
-
-        /* Ensure the PIP (Local Video) is positioned well on mobile */
-        .str-video__participant-view--pip {
-          top: 20px !important;
-          right: 20px !important;
-          width: 100px !important;
-          height: 150px !important;
-          border-radius: 12px !important;
-          box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important;
-          border: 1px solid rgba(255,255,255,0.1) !important;
-        }
-
-        @media (min-width: 768px) {
-          .str-video__participant-view--pip {
-            width: 180px !important;
-            height: 120px !important;
-          }
-        }
-
+        /* Responsive Controls Layout */
         .str-video__call-controls {
           background: transparent !important;
           border: none !important;
-          gap: 12px !important;
+          display: flex !important;
+          flex-wrap: wrap !important;
+          justify-content: center !important;
+          gap: 16px !important;
           padding: 0 !important;
         }
 
+        /* Circle Buttons */
         .str-video__call-controls__button {
-          background-color: rgba(255, 255, 255, 0.15) !important;
+          background-color: rgba(255, 255, 255, 0.1) !important;
           backdrop-filter: blur(10px);
           border: 1px solid rgba(255, 255, 255, 0.1) !important;
-          width: 50px !important;
-          height: 50px !important;
+          width: 54px !important;
+          height: 54px !important;
           border-radius: 50% !important;
+          transition: all 0.2s ease !important;
         }
 
-        .str-video__call-controls__button i {
-          font-size: 20px !important;
+        .str-video__call-controls__button:active {
+          transform: scale(0.9);
+          background-color: rgba(255, 255, 255, 0.2) !important;
         }
 
+        /* Special Styling for Hang Up to make it the centerpiece */
         .str-video__call-controls__button--leave {
-          background-color: #ef4444 !important; /* red-500 */
+          background-color: #ef4444 !important;
           border: none !important;
-          width: 60px !important;
-          height: 60px !important;
+          width: 64px !important;
+          height: 64px !important;
+          order: 3; /* Positions it prominently */
+          box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
         }
 
-        /* Hide the Stream watermark/branding for a cleaner mobile look if needed */
+        /* Layout for Mobile participants */
+        .str-video__speaker-layout {
+          height: 100% !important;
+          padding-bottom: 20px !important;
+        }
+
+        .str-video__participant-view--pip {
+          top: 20px !important;
+          right: 16px !important;
+          width: 110px !important;
+          height: 160px !important;
+          border-radius: 20px !important;
+          overflow: hidden !important;
+          border: 2px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        @media (min-width: 768px) {
+          .str-video__call-controls {
+            flex-wrap: nowrap !important;
+          }
+          .str-video__call-controls__button {
+            width: 60px !important;
+            height: 60px !important;
+          }
+          .str-video__participant-view--pip {
+            width: 240px !important;
+            height: 150px !important;
+          }
+        }
+
         .str-video__power-by {
           display: none !important;
         }
