@@ -7,10 +7,21 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
+// This interface matches the data structure coming back from your database action
+interface Match extends UserProfile {
+  id: string;
+  created_at: string;
+  last_message?: {
+    content: string;
+    created_at: string;
+  };
+  unread_count?: number;
+}
+
 interface ChatData {
   id: string; 
   user: UserProfile;
-  lastMessage?: string;
+  lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
 }
@@ -22,15 +33,29 @@ export default function ChatPage() {
   useEffect(() => {
     async function loadMatches() {
       try {
-        const userMatches = await getUserMatches();
+        // Cast the response to our Match interface
+        const userMatches = await getUserMatches() as Match[];
+        
         const chatData: ChatData[] = userMatches.map((match) => ({
           id: match.id, 
-          user: match,
-          lastMessage: "Start your conversation!",
-          lastMessageTime: match.created_at,
-          unreadCount: 0,
+          user: {
+            // Spread the match properties that belong to UserProfile
+            id: match.id,
+            full_name: match.full_name,
+            avatar_url: match.avatar_url,
+            // Add other UserProfile fields if necessary
+          } as UserProfile,
+          lastMessage: match.last_message?.content || "Start your conversation!",
+          lastMessageTime: match.last_message?.created_at || match.created_at,
+          unreadCount: match.unread_count || 0,
         }));
-        setChats(chatData);
+
+        // Sort by timestamp: Newest messages first
+        const sortedChats = chatData.sort((a, b) => 
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+        );
+
+        setChats(sortedChats);
       } catch (error) {
         console.error("Failed to load chats:", error);
       } finally {
