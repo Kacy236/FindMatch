@@ -16,24 +16,45 @@ export default function ChatConversationPage() {
   const params = useParams();
   const { user } = useAuth();
   
-  const chatId = (params.id || params.userId) as string;
+  // The ID from the URL (could be named id or userId in your config)
+  const routeUserId = (params.id || params.userId) as string;
   const chatInterfaceRef = useRef<{ handleVideoCall: () => void } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadUserData() {
-      if (!chatId || !user) return;
+      if (!routeUserId || !user) return;
 
       try {
         setLoading(true);
-        const userMatches = await getUserMatches();
-        const matchedUser = userMatches.find((match) => match.id === chatId);
+        // Cast as any[] to handle nested 'profiles' from database joins
+        const userMatches = (await getUserMatches()) as any[];
+        
+        // Find the match where the user's ID matches the route ID
+        const matchedData = userMatches.find((m) => {
+          const profileId = m.profiles?.id || m.user?.id || m.user_id || m.id;
+          return profileId === routeUserId;
+        });
 
         if (isMounted) {
-          if (matchedUser) {
-            setOtherUser(matchedUser);
+          if (matchedData) {
+            /**
+             * FIX: Flattening the nested 'profiles' object.
+             * This resolves the error: "Property 'profiles' does not exist on type 'UserProfile'"
+             * by spreading the nested data into a flat structure.
+             */
+            const profileData: UserProfile = {
+              ...matchedData, // Base match data
+              ...(matchedData.profiles || {}), // Extract nested profile fields
+              id: routeUserId, // Ensure the ID is the specific User ID
+              full_name: matchedData.profiles?.full_name || matchedData.full_name || "User",
+              avatar_url: matchedData.profiles?.avatar_url || matchedData.avatar_url || "/default-avatar.png"
+            };
+            
+            setOtherUser(profileData);
           } else {
+            console.warn("No match found for ID:", routeUserId);
             router.push("/chat");
           }
         }
@@ -47,19 +68,18 @@ export default function ChatConversationPage() {
 
     loadUserData();
     return () => { isMounted = false; };
-  }, [chatId, router, user]);
+  }, [routeUserId, router, user]);
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-white dark:bg-gray-950 flex flex-col items-center justify-center z-50">
+      <div className="fixed inset-0 bg-white dark:bg-gray-950 flex flex-col items-center justify-center z-[100]">
         <motion.div 
-          animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 1, 0.5] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="w-20 h-20 bg-pink-500/10 rounded-full flex items-center justify-center mb-4"
         >
           <div className="h-10 w-10 rounded-full border-t-2 border-pink-500 animate-spin" />
         </motion.div>
-        
       </div>
     );
   }
@@ -71,7 +91,7 @@ export default function ChatConversationPage() {
           <div className="text-6xl mb-6">🔒</div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Private Room</h2>
           <p className="text-gray-500 text-sm mb-8 leading-relaxed">
-            This conversation is no longer available or the link has expired.
+            This conversation is no longer available or you do not have permission to view it.
           </p>
           <button
             onClick={() => router.push("/chat")}
@@ -86,32 +106,33 @@ export default function ChatConversationPage() {
 
   return (
     <div className="fixed inset-0 bg-white dark:bg-gray-950 flex flex-col overflow-hidden">
-      {/* Container limited to a readable width on Desktop, full width on Mobile */}
-      <div className="mx-auto w-full max-w-2xl h-full flex flex-col shadow-2xl shadow-black/5">
+      {/* Desktop Max-Width Container */}
+      <div className="mx-auto w-full max-w-2xl h-full flex flex-col relative">
         
-        {/* Animated Header Component */}
-        <motion.div 
-          initial={{ y: -20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="z-50 border-b border-gray-100 dark:border-gray-900 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl"
-        >
-          <ChatHeader
-            user={otherUser}
-            onVideoCall={() => {
-              chatInterfaceRef.current?.handleVideoCall();
-            }}
-          />
-        </motion.div>
+        {/* Header Section: flex-shrink-0 prevents the chat from squishing the header */}
+        <div className="relative z-[60] flex-shrink-0 bg-white dark:bg-gray-950">
+          <motion.div 
+            initial={{ y: -10, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+          >
+            <ChatHeader
+              user={otherUser}
+              onVideoCall={() => {
+                chatInterfaceRef.current?.handleVideoCall();
+              }}
+            />
+          </motion.div>
+        </div>
 
-        {/* Chat Interface Area */}
-        <main className="flex-1 relative min-h-0 bg-[#FDFCFD] dark:bg-gray-950">
+        {/* Main Chat Interface Area */}
+        <main className="flex-1 relative min-h-0 z-10 bg-[#FDFCFD] dark:bg-gray-950">
           <AnimatePresence mode="wait">
             <motion.div 
               key={otherUser.id}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="h-full"
+              className="h-full w-full"
             >
               <StreamChatInterface 
                 otherUser={otherUser} 
@@ -121,8 +142,8 @@ export default function ChatConversationPage() {
           </AnimatePresence>
         </main>
         
-        {/* Safe Area Spacer for iOS Home Bar */}
-        <div className="h-[env(safe-area-inset-bottom)] bg-white dark:bg-gray-950" />
+        {/* iOS Home Bar Spacer */}
+        <div className="flex-shrink-0 h-[env(safe-area-inset-bottom)] bg-white dark:bg-gray-950" />
       </div>
     </div>
   );
