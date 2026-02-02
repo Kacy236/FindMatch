@@ -54,7 +54,7 @@ export default function MatchesListPage() {
         <div className="container mx-auto max-w-2xl px-6 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">
-              Messages
+              Matches
             </h1>
             <p className="text-xs font-bold text-pink-500 uppercase tracking-wider">
               {matches.length} Mutual Match{matches.length !== 1 ? "es" : ""}
