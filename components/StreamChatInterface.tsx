@@ -145,7 +145,7 @@ export default function StreamChatInterface({
         // Convert stream messages to our format
         const convertedMessages: Message[] = state.messages.map((msg) => ({
           id: msg.id,
-          text: msg.text || "",
+          text: msg.text || (msg.type === 'regular' ? "" : "📹 Video call invitation"),
           sender: msg.user?.id === userId ? "me" : "other",
           timestamp: new Date(msg.created_at || new Date()),
           user_id: msg.user?.id || "",
@@ -163,13 +163,13 @@ export default function StreamChatInterface({
                 setCallerName(customData.caller_name || "Someone");
                 setIncomingCall(true);
               }
-              return;
+              // Still show the message in the chat history
             }
 
             if (event.message.user?.id !== userId) {
               const newMsg: Message = {
                 id: event.message.id,
-                text: event.message.text || "",
+                text: event.message.text || "📹 Video call invitation",
                 sender: "other",
                 timestamp: new Date(event.message.created_at || new Date()),
                 user_id: event.message.user?.id || "",
@@ -379,7 +379,8 @@ export default function StreamChatInterface({
                 >
                   <p>{message.text}</p>
                 </div>
-                <span className={`text-[10px] mt-1 font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                {/* Changed: Removed opacity-0 and group-hover classes to show time permanently */}
+                <span className={`text-[10px] mt-1 font-medium transition-opacity duration-200 ${
                   isMe ? "text-right mr-1" : "text-left ml-1"
                 } text-gray-400 dark:text-gray-500`}>
                   {formatTime(message.timestamp)}
