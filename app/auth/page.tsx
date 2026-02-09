@@ -12,15 +12,25 @@ export default function AuthPage() {
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  
+  // Track if the current session was just created via Sign Up
+  const [isNewRegistration, setIsNewRegistration] = useState<boolean>(false);
+
   const supabase = createClient();
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (user && !authLoading) {
-      router.push("/");
+      if (isNewRegistration) {
+        // Direct to profile edit after successful signup
+        router.push("/profile/edit");
+      } else {
+        // Direct to home after regular login
+        router.push("/");
+      }
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, isNewRegistration]);
 
   async function handleAuth(e: React.FormEvent) {
     e.preventDefault();
@@ -33,14 +43,21 @@ export default function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            // This ensures they come back to the right place if using email confirmation
+            emailRedirectTo: `${window.location.origin}/profile/edit`,
           },
         });
 
         if (error) throw error;
+
         if (data.user && !data.session) {
           setError("Check your inbox to verify your email!");
           return;
+        }
+
+        // If auto-login is enabled after signup, set this flag
+        if (data.session) {
+          setIsNewRegistration(true);
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
@@ -48,6 +65,9 @@ export default function AuthPage() {
           password,
         });
         if (error) throw error;
+        
+        // Ensure flag is false for standard logins
+        setIsNewRegistration(false);
       }
     } catch (error: any) {
       setError(error.message);
@@ -149,7 +169,10 @@ export default function AuthPage() {
 
           <div className="mt-8 text-center">
             <button
-              onClick={() => setIsSignUp(!isSignUp)}
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError(""); // Clear errors when switching modes
+              }}
               className="text-xs font-bold text-gray-400 hover:text-pink-500 transition-colors uppercase tracking-widest"
             >
               {isSignUp ? "Already a member? Sign In" : "New here? Create Account"}
@@ -157,7 +180,6 @@ export default function AuthPage() {
           </div>
         </motion.div>
 
-        {/* Footer info */}
         <p className="mt-8 text-center text-[10px] text-gray-400 font-medium px-6">
           By continuing, you agree to our Terms of Service and Privacy Policy.
         </p>

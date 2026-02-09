@@ -23,13 +23,13 @@ export async function getUserById(userId: string): Promise<UserProfile | null> {
 
   return {
     ...data,
-    email: "", // Masking email for privacy unless needed
+    email: "", // Masking email for privacy
   } as UserProfile;
 }
 
 /**
  * 1. POTENTIAL MATCHES
- * Fetches users who haven't been liked yet but match current user preferences.
+ * STRICT FILTERING: Only fetches users who strictly fit gender AND body type preferences.
  */
 export async function getPotentialMatches(): Promise<UserProfile[]> {
   const supabase = await createClient();
@@ -47,11 +47,16 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     .eq("id", user.id)
     .single();
 
-  if (userError) throw new Error("Failed to get user preferences");
+  if (userError || !currentUser) throw new Error("Failed to get user preferences");
 
   const prefs = currentUser.preferences as any;
   const genderPrefs = prefs?.gender_preference || [];
   const bodyTypePrefs = prefs?.body_types || [];
+
+  // STRICT RULE: If no preferences are set, return empty to avoid random matches
+  if (genderPrefs.length === 0 || bodyTypePrefs.length === 0) {
+    return [];
+  }
 
   const { data: alreadyLiked } = await supabase
     .from("likes")
@@ -61,14 +66,12 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
   const excludedIds = alreadyLiked?.map((l) => l.to_user_id) || [];
   excludedIds.push(user.id);
 
+  // Database Filter: Gender & Exclusions
   let query = supabase
     .from("users")
     .select("*")
-    .not("id", "in", `(${excludedIds.join(",")})`);
-
-  if (genderPrefs.length > 0) {
-    query = query.in("gender", genderPrefs);
-  }
+    .not("id", "in", `(${excludedIds.join(",")})`)
+    .in("gender", genderPrefs);
 
   const { data: potentialMatches, error: fetchError } = await query.limit(50);
 
@@ -76,9 +79,9 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
     throw new Error("failed to fetch potential matches");
   }
 
+  // Application Filter: Strict Body Type check
   return potentialMatches
     .filter((match) => {
-      if (!bodyTypePrefs || bodyTypePrefs.length === 0) return true;
       return bodyTypePrefs.includes(match.body_type);
     })
     .map((match) => ({
@@ -89,7 +92,7 @@ export async function getPotentialMatches(): Promise<UserProfile[]> {
 
 /**
  * 2. LIKE A USER
- * Handles liking a user and checks for mutual matches.
+ * Handles liking a user and AUTOMATICALLY creates a record in 'matches' table if mutual.
  */
 export async function likeUser(toUserId: string) {
   const supabase = await createClient();
@@ -101,6 +104,7 @@ export async function likeUser(toUserId: string) {
     throw new Error("Not authenticated.");
   }
 
+  // Create the record of your like
   const { error: likeError } = await supabase.from("likes").insert({
     from_user_id: user.id,
     to_user_id: toUserId,
@@ -110,6 +114,7 @@ export async function likeUser(toUserId: string) {
     throw new Error("Failed to create like");
   }
 
+  // Check if they liked you previously
   const { data: existingLike, error: checkError } = await supabase
     .from("likes")
     .select("*")
@@ -121,7 +126,16 @@ export async function likeUser(toUserId: string) {
     throw new Error("Failed to check for match");
   }
 
+  // If mutual like exists, create the official Match record
   if (existingLike) {
+    const { error: matchTableError } = await supabase.from("matches").insert({
+      user1_id: user.id,
+      user2_id: toUserId,
+      is_active: true
+    });
+
+    if (matchTableError) console.error("Match record creation failed:", matchTableError.message);
+
     const matchedUser = await getUserById(toUserId);
 
     return {
@@ -206,7 +220,6 @@ export async function getUsersILiked(): Promise<UserProfile[]> {
 
 /**
  * 5. CONFIRMED MATCHES
- * Optimized to fetch all "other users" in one query.
  */
 export async function getUserMatches(): Promise<UserProfile[]> {
   const supabase = await createClient();
